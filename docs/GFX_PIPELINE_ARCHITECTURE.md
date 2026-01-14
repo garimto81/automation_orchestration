@@ -2,6 +2,11 @@
 
 WSOP 포커 방송 자동화 시스템의 전체 데이터 파이프라인 아키텍처 문서
 
+> **관련 문서**
+> - [DB 스키마 상세 설계](architecture.md) - DDL, ERD, Enum 타입 정의
+> - [아키텍처 요약](ARCHITECTURE_ANALYSIS.md) - Executive Summary
+> - [프로젝트 현황](AUTOMATION_PROJECTS_REPORT.md) - 7개 프로젝트 현황
+
 ---
 
 ## 1. 개요

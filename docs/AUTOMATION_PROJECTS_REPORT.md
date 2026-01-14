@@ -1,5 +1,12 @@
 # Automation 프로젝트 구조 분석 보고서
 
+> **관련 문서**
+> - [5계층 파이프라인 아키텍처](GFX_PIPELINE_ARCHITECTURE.md) - 계층별 역할 상세
+> - [DB 스키마 상세 설계](architecture.md) - DDL, ERD, Enum 타입
+> - [아키텍처 요약](ARCHITECTURE_ANALYSIS.md) - Executive Summary
+
+---
+
 ## 개요
 
 `C:\claude` 하위에 **7개의 automation 프로젝트**가 존재하며, 모두 **WSOP 포커 방송 자동화**라는 공통 목표를 위해 설계되었습니다.
@@ -16,7 +23,7 @@
 | **automation_sub** | ✅ 활성 | PRD 관리 및 스크립트 | Python, Google Docs API |
 | **automation_aep** | 🔄 개발 중 | AEP 에셋/매핑 관리 | After Effects JSX, PostgreSQL |
 | **automation_ae_switcher** | 📋 PRD만 | AE 모드 전환 | (automation_ae에 구현됨) |
-| **automation_orchestration** | ⏳ 계획 | 통합 오케스트레이션 | (미구현) |
+| **automation_orchestration** | 📂 문서 허브 | 아키텍처 문서 저장소 + 모니터링 | Markdown |
 
 ---
 
@@ -24,14 +31,24 @@
 
 **경로**: `C:\claude\automation_orchestration`
 
-**상태**: 비어있음 (초기화 단계)
-- 폴더는 존재하지만 프로젝트 파일 없음
-- 임시 파일(tmpclaude-*-cwd)만 포함
+**상태**: 📂 문서 허브 (활성)
 
-**예상 역할**: 7개 프로젝트를 통합 조율하는 오케스트레이션 계층
-- 워크플로우 조율
-- 병렬 실행 관리
-- 이벤트 기반 트리거 (새 핸드 감지 → 자동 렌더링)
+### 역할
+
+| 역할 | 설명 |
+|------|------|
+| 아키텍처 문서 | 전체 시스템 설계 문서 중앙 관리 |
+| 모니터링 | 다른 automation_* 프로젝트 현황 조망 |
+| 실제 구현 | ❌ 없음 (다른 프로젝트에서 수행) |
+
+### 문서 현황
+
+| 문서 | 용도 |
+|------|------|
+| `architecture.md` | 5계층 DB 스키마 상세 설계 (DDL, ERD) |
+| `GFX_PIPELINE_ARCHITECTURE.md` | 5계층 파이프라인 역할 상세 |
+| `ARCHITECTURE_ANALYSIS.md` | 아키텍처 Executive Summary |
+| `AUTOMATION_PROJECTS_REPORT.md` | 7개 프로젝트 현황 보고서 (본 문서)
 
 ---
 
@@ -238,12 +255,14 @@ automation_sub/
 |------|------|
 | **전체 프로젝트** | 7개 automation 프로젝트 |
 | **활성** | 4개 (hub, ae, feature_table, sub) |
+| **문서 허브** | 1개 (orchestration) |
 | **개발 중** | 1개 (aep) |
-| **계획/문서** | 2개 (orchestration, ae_switcher) |
+| **PRD 문서만** | 1개 (ae_switcher) |
 | **핵심 목표** | WSOP 포커 방송 완전 자동화 |
+| **아키텍처** | 5계층 (INPUT → STORAGE → ORCHESTRATION → DASHBOARD → OUTPUT) |
 | **통합 패턴** | Hub-and-Spoke (중앙 DB 연결) |
 
-**automation_orchestration**은 현재 빈 폴더이며, 향후 이 7개 프로젝트를 통합 조율하는 역할을 담당할 예정입니다.
+**automation_orchestration**은 전체 시스템 아키텍처 문서를 관리하는 중앙 문서 허브로 운영됩니다.
 
 ---
 

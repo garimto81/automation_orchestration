@@ -1,6 +1,6 @@
 # GFX JSON DB → AEP 자막 매핑 명세서
 
-**Version**: 1.2.0
+**Version**: 1.3.0
 **Last Updated**: 2026-01-14
 **Status**: Active
 
@@ -10,15 +10,15 @@
 
 ### 1.1 목적
 
-GFX JSON DB 데이터를 After Effects **27개 컴포지션** (방송 전or후 뽑기 11개 + 방송 중 뽑기 16개)의 자막 필드에 매핑하는 전체 명세서.
+GFX JSON DB 데이터를 After Effects **28개 컴포지션** (방송 전or후 뽑기 11개 + 방송 중 뽑기 17개)의 자막 필드에 매핑하는 전체 명세서.
 
 ### 1.2 범위 정의
 
 | 포함 범위 | 개수 | 설명 |
 |-----------|------|------|
 | 방송 전or후 뽑기 | 11개 | 스케줄, 이벤트 정보, 스태프 등 |
-| 방송 중 뽑기 | 16개 | 칩 디스플레이, 플레이어 정보 등 |
-| **총합** | **27개** | |
+| 방송 중 뽑기 | 17개 | 칩 디스플레이, 플레이어 정보 등 |
+| **총합** | **28개** | |
 
 | 제외 범위 | 위치 | 사유 |
 |-----------|------|------|
@@ -71,14 +71,14 @@ GFX JSON DB 데이터를 After Effects **27개 컴포지션** (방송 전or후 �
 
 ---
 
-## 3. 카테고리별 컴포지션 매핑 (27개)
+## 3. 카테고리별 컴포지션 매핑 (28개)
 
 ### 3.1 chip_display (7개) - 칩 표시
 
 | # | 컴포지션 | 필드 키 | GFX 소스 | 슬롯 수 | 변환 |
 |---|----------|---------|----------|---------|------|
-| 1 | _MAIN Mini Chip Count | name, chips, bbs, rank | gfx_hand_players | **8** | UPPER, format_chips, format_bbs |
-| 2 | _SUB_Mini Chip Count | name, chips, bbs, rank | gfx_hand_players | **7** | UPPER, format_chips, format_bbs |
+| 1 | _MAIN Mini Chip Count | name, chips, bbs, rank | gfx_hand_players | **9** | UPPER, format_chips, format_bbs |
+| 2 | _SUB_Mini Chip Count | name, chips, bbs, rank | gfx_hand_players | **9** | UPPER, format_chips, format_bbs |
 | 3 | Chips In Play x3 | chips_in_play, level | gfx_hands.blinds, 계산 | **3** | format_chips |
 | 4 | Chips In Play x4 | chips_in_play, level | gfx_hands.blinds, 계산 | **4** | format_chips |
 | 5 | Chip Comparison | player_%, 플레이어_네임,_bb_입력 | gfx_hand_players | 0 | 직접 |
@@ -88,7 +88,7 @@ GFX JSON DB 데이터를 After Effects **27개 컴포지션** (방송 전or후 �
 **매핑 로직:**
 
 ```sql
--- _MAIN Mini Chip Count: 8명까지 칩 순위 표시 (실제 AEP 슬롯 수)
+-- _MAIN Mini Chip Count: 9명까지 칩 순위 표시 (실제 AEP 슬롯 수)
 SELECT
     ROW_NUMBER() OVER (ORDER BY hp.end_stack_amt DESC) AS slot_index,
     UPPER(hp.player_name) AS name,
@@ -103,7 +103,7 @@ WHERE hp.sitting_out = FALSE
   AND h.session_id = :session_id
   AND h.hand_num = :hand_num
 ORDER BY hp.end_stack_amt DESC
-LIMIT 8;
+LIMIT 9;
 ```
 
 ---
@@ -113,7 +113,7 @@ LIMIT 8;
 | # | 컴포지션 | 필드 키 | GFX 소스 | 슬롯 수 | 변환 |
 |---|----------|---------|----------|---------|------|
 | 1 | Payouts | rank, prize | wsop_events.payouts | **9** | format_currency |
-| 2 | Payouts 등수 바꾸기 가능 | rank, prize | wsop_events.payouts | **12** | format_currency |
+| 2 | Payouts 등수 바꾸기 가능 | rank, prize | wsop_events.payouts | **11** | format_currency |
 | 3 | _Mini Payout | name, prize, rank | gfx_sessions.payouts | **9** | format_currency |
 
 **매핑 로직:**
@@ -184,8 +184,8 @@ LIMIT 6;
 
 | # | 컴포지션 | 필드 키 (슬롯) | GFX 소스 | 슬롯 수 | 변환 |
 |---|----------|----------------|----------|---------|------|
-| 1 | Commentator | name, sub, commentary, text_제목 | manual.commentators | **4** | 직접 |
-| 2 | Reporter | name, sub | manual.reporters | **4** | 직접 |
+| 1 | Commentator | name, sub, commentary, text_제목 | manual.commentators | **2** | 직접 |
+| 2 | Reporter | name, sub | manual.reporters | **2** | 직접 |
 
 **매핑 로직:**
 
@@ -196,18 +196,19 @@ SELECT
     c.social_handle AS sub
 FROM manual_commentators c
 WHERE c.event_id = :event_id
-LIMIT 4;
+LIMIT 2;
 ```
 
 ---
 
-### 3.6 player_info (3개) - 플레이어 정보
+### 3.6 player_info (4개) - 플레이어 정보
 
 | # | 컴포지션 | 필드 키 | 기본 소스 | Override | 변환 |
 |---|----------|---------|-----------|----------|------|
 | 1 | NAME | player_name, 국기 | gfx_hand_players | Manual (오타 수정) | 직접, get_flag_path |
 | 2 | NAME 1줄 | player_name | gfx_hand_players | Manual | 직접 |
 | 3 | NAME 2줄 (국기 빼고) | player_name (2줄) | gfx_hand_players | Manual | 직접 |
+| 4 | NAME 3줄+ | player_name (3줄+) | gfx_hand_players | Manual | 직접 |
 
 **매핑 로직:**
 
@@ -414,20 +415,20 @@ INSERT INTO gfx_aep_field_mappings VALUES
 
 ---
 
-## 8. 컴포지션 카테고리 요약 (27개)
+## 8. 컴포지션 카테고리 요약 (28개)
 
 | 카테고리 | 개수 | 동적 매핑 | 주요 소스 | 실제 슬롯 수 |
 |----------|------|-----------|-----------|--------------|
-| chip_display | 7 | ✅ | gfx_hand_players | 8, 7, 3, 4, 0, 0, 0 |
-| payout | 3 | ✅ | wsop_events | 9, 12, 9 |
+| chip_display | 7 | ✅ | gfx_hand_players | 9, 9, 3, 4, 0, 0, 0 |
+| payout | 3 | ✅ | wsop_events | 9, 11, 9 |
 | event_info | 5 | ✅ | wsop_events, gfx_sessions | - |
 | schedule | 1 | ✅ | broadcast_sessions | 6 |
-| staff | 2 | ✅ | manual.commentators | 4, 4 |
-| player_info | 3 | ✅ | gfx_hand_players + Manual | - |
+| staff | 2 | ✅ | manual.commentators | 2, 2 |
+| player_info | 4 | ✅ | gfx_hand_players + Manual | - |
 | elimination | 2 | ✅ | gfx_hand_players | - |
 | transition | 2 | ❌ | 정적 | - |
 | other | 2 | ❌ | 정적 | - |
-| **Total** | **27** | - | - | - |
+| **Total** | **28** | - | - | - |
 
 > ⚠️ **제외된 카테고리**:
 > - `leaderboard` (3개): Comp/ 폴더 위치로 범위 외
@@ -448,7 +449,7 @@ INSERT INTO gfx_aep_field_mappings VALUES
 
 ## 10. 검증 방법
 
-1. **27개 컴포지션별 field_keys 매핑 완료 확인**
+1. **28개 컴포지션별 field_keys 매핑 완료 확인**
 2. **SQL 함수 DDL 문법 검증**
 3. **JSON Schema 유효성 확인**
 4. **샘플 데이터로 렌더링 테스트**
@@ -472,7 +473,7 @@ INSERT INTO gfx_aep_field_mappings VALUES
         │                        │                        │
         ▼                        ▼                        ▼
 ┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│ • ID (GameID)    │     │ • gfx_sessions   │     │ • 27개 컴포지션  │
+│ • ID (GameID)    │     │ • gfx_sessions   │     │ • 28개 컴포지션  │
 │ • EventTitle     │     │ • gfx_hands      │     │ • 텍스트 레이어  │
 │ • Hands[]        │     │ • gfx_hand_players│    │ • 슬롯 기반 매핑 │
 │ • Players[]      │     │ • unified_players │    │                  │
@@ -483,7 +484,7 @@ INSERT INTO gfx_aep_field_mappings VALUES
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│               _MAIN Mini Chip Count 데이터 흐름 (8 슬롯)                      │
+│               _MAIN Mini Chip Count 데이터 흐름 (9 슬롯)                      │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 1️⃣ GFX JSON 원본 (PokerGFX 출력)
@@ -650,7 +651,7 @@ LIMIT 9;
 
 ### 12.1 chip_display 카테고리
 
-#### 12.1.1 _MAIN Mini Chip Count (8 슬롯)
+#### 12.1.1 _MAIN Mini Chip Count (9 슬롯)
 
 **슬롯 필드 매핑:**
 
@@ -668,14 +669,14 @@ LIMIT 9;
 | `chips` | `"chips (BB)"` | 고정 헤더 |
 | `player` | `"players"` | 고정 헤더 |
 
-#### 12.1.2 _SUB_Mini Chip Count (7 슬롯)
+#### 12.1.2 _SUB_Mini Chip Count (9 슬롯)
 
 | AEP 필드 | GFX JSON 경로 | DB 컬럼 | 변환 | 예시 |
 |----------|---------------|---------|------|------|
 | `Name {N}` | `Players[].Name` | `player_name` | `UPPER()` | `"VORONIN"` |
 | `Chips {N}` | `Players[].EndStackAmt` | `end_stack_amt` | `format_chips()` | `"1,625,000"` |
 
-> 📝 **참고**: _SUB는 7슬롯으로 _MAIN(8슬롯)보다 1개 적음
+> 📝 **참고**: _MAIN과 _SUB 모두 9슬롯으로 동일 (빈 슬롯 포함)
 
 #### 12.1.3 Chips In Play x3/x4 (3/4 슬롯)
 
@@ -720,9 +721,9 @@ LIMIT 9;
 | `prize {N}` | `Payouts[N-1]` 또는 `payouts[].amount` | `amount` | `format_currency()` | `100000000` | `"$1,000,000"` |
 | `total_prize` | `SUM(payouts)` | - | `format_currency()` | - | `"$5,000,000"` |
 
-#### 12.2.2 Payouts 등수 바꾸기 가능 (12 슬롯)
+#### 12.2.2 Payouts 등수 바꾸기 가능 (11 슬롯)
 
-> 📝 **차이점**: 9슬롯 → 12슬롯으로 확장, 등수 범위 수동 조정 가능
+> 📝 **차이점**: 9슬롯 → 11슬롯으로 확장, 등수 범위 수동 조정 가능
 
 #### 12.2.3 _Mini Payout (9 슬롯)
 
@@ -782,7 +783,7 @@ LIMIT 9;
 
 ### 12.5 staff 카테고리
 
-#### 12.5.1 Commentator (4 슬롯)
+#### 12.5.1 Commentator (2 슬롯)
 
 | AEP 필드 | DB 컬럼 | 예시 |
 |----------|---------|------|
@@ -791,7 +792,7 @@ LIMIT 9;
 | `commentary` | 고정 | `"COMMENTARY"` |
 | `text_제목` | 고정 | `"COMMENTATORS"` |
 
-#### 12.5.2 Reporter (4 슬롯)
+#### 12.5.2 Reporter (2 슬롯)
 
 | AEP 필드 | DB 컬럼 | 예시 |
 |----------|---------|------|
