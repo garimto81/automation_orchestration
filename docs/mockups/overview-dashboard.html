@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Automation Projects Overview - Mockup</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+      background: #fff;
+      color: #000;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    /* Layout */
+    .layout {
+      display: grid;
+      grid-template-rows: 48px 1fr;
+      grid-template-columns: 180px 1fr 280px;
+      height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      grid-column: 1 / -1;
+      border-bottom: 1px solid #000;
+      padding: 0 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-title {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .header-controls {
+      display: flex;
+      gap: 16px;
+      font-size: 11px;
+    }
+
+    .header-controls span {
+      cursor: pointer;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      border-right: 1px solid #000;
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    .sidebar-section {
+      margin-bottom: 24px;
+    }
+
+    .sidebar-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .project-list {
+      list-style: none;
+    }
+
+    .project-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      cursor: pointer;
+    }
+
+    .project-item:hover {
+      background: #f5f5f5;
+    }
+
+    .project-item.selected {
+      font-weight: 600;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      border: 1px solid #000;
+    }
+
+    .status-dot.active {
+      background: #000;
+    }
+
+    .status-dot.selected {
+      background: #000;
+      box-shadow: 0 0 0 2px #fff, 0 0 0 3px #000;
+    }
+
+    .project-name {
+      flex: 1;
+    }
+
+    .project-progress {
+      color: #666;
+      font-size: 10px;
+    }
+
+    .summary-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .progress-bar-small {
+      height: 6px;
+      background: #eee;
+      margin-top: 8px;
+    }
+
+    .progress-bar-small .fill {
+      height: 100%;
+      background: #000;
+    }
+
+    /* Canvas */
+    .canvas {
+      position: relative;
+      overflow: hidden;
+      background:
+        linear-gradient(90deg, #f5f5f5 1px, transparent 1px),
+        linear-gradient(#f5f5f5 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+
+    .canvas-controls {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      background: #fff;
+      border: 1px solid #000;
+      padding: 4px 12px;
+      font-size: 11px;
+    }
+
+    .canvas-controls button {
+      background: none;
+      border: 1px solid #000;
+      padding: 2px 8px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .canvas-controls button:hover {
+      background: #000;
+      color: #fff;
+    }
+
+    /* Nodes */
+    .node {
+      position: absolute;
+      border: 1px solid #000;
+      background: #fff;
+      min-width: 140px;
+      cursor: move;
+    }
+
+    .node.selected {
+      border-width: 2px;
+    }
+
+    .node-header {
+      padding: 8px 12px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .node-body {
+      padding: 8px 12px;
+    }
+
+    .node-progress {
+      margin-bottom: 8px;
+    }
+
+    .node-progress-label {
+      font-size: 10px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: #eee;
+    }
+
+    .progress-bar .fill {
+      height: 100%;
+      background: #000;
+    }
+
+    .node-stats {
+      display: flex;
+      gap: 8px;
+      font-size: 10px;
+      color: #666;
+    }
+
+    /* Node - Compact */
+    .node.compact {
+      min-width: 100px;
+    }
+
+    .node.compact .node-header {
+      padding: 6px 10px;
+      font-size: 11px;
+    }
+
+    .node.compact .node-body {
+      padding: 6px 10px;
+    }
+
+    .node.compact .progress-bar {
+      height: 6px;
+    }
+
+    /* Edges (SVG) */
+    .edges-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .edge {
+      stroke: #000;
+      stroke-width: 1;
+      fill: none;
+    }
+
+    .edge-arrow {
+      fill: #000;
+    }
+
+    .edge.animated {
+      stroke-dasharray: 5, 5;
+      animation: dash 1s linear infinite;
+    }
+
+    @keyframes dash {
+      to {
+        stroke-dashoffset: -10;
+      }
+    }
+
+    /* Detail Panel */
+    .detail-panel {
+      border-left: 1px solid #000;
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    .detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #000;
+    }
+
+    .detail-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .detail-close {
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .detail-section {
+      margin-bottom: 20px;
+    }
+
+    .detail-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+    }
+
+    .detail-label {
+      color: #666;
+    }
+
+    .detail-value {
+      font-weight: 500;
+    }
+
+    .detail-progress-item {
+      margin-bottom: 8px;
+    }
+
+    .detail-progress-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .service-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 0;
+    }
+
+    .service-name {
+      flex: 1;
+    }
+
+    .service-badge {
+      font-size: 10px;
+      padding: 1px 6px;
+      border: 1px solid #000;
+    }
+
+    .service-badge.ok {
+      background: #000;
+      color: #fff;
+    }
+
+    .service-time {
+      font-size: 10px;
+      color: #666;
+    }
+
+    .commit-item {
+      padding: 4px 0;
+      font-size: 11px;
+    }
+
+    .commit-message {
+      color: #000;
+    }
+
+    .commit-time {
+      color: #666;
+      font-size: 10px;
+    }
+
+    .dependency-item {
+      padding: 4px 0;
+    }
+
+    .dependency-in::before {
+      content: '\2190 ';
+    }
+
+    .dependency-out::before {
+      content: '\2192 ';
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <!-- Header -->
+    <header class="header">
+      <span class="header-title">AUTOMATION PROJECTS OVERVIEW</span>
+      <div class="header-controls">
+        <span>[&#9675; Connected]</span>
+        <span>[&#8635; Refresh]</span>
+      </div>
+    </header>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">PROJECTS</h3>
+        <ul class="project-list">
+          <li class="project-item selected">
+            <span class="status-dot selected"></span>
+            <span class="project-name">ae</span>
+            <span class="project-progress">80%</span>
+          </li>
+          <li class="project-item">
+            <span class="status-dot active"></span>
+            <span class="project-name">hub</span>
+            <span class="project-progress">65%</span>
+          </li>
+          <li class="project-item">
+            <span class="status-dot active"></span>
+            <span class="project-name">feature</span>
+            <span class="project-progress">100%</span>
+          </li>
+          <li class="project-item">
+            <span class="status-dot active"></span>
+            <span class="project-name">sub</span>
+            <span class="project-progress">60%</span>
+          </li>
+          <li class="project-item">
+            <span class="status-dot active"></span>
+            <span class="project-name">aep</span>
+            <span class="project-progress">45%</span>
+          </li>
+          <li class="project-item">
+            <span class="status-dot active"></span>
+            <span class="project-name">dashboard</span>
+            <span class="project-progress">90%</span>
+          </li>
+          <li class="project-item">
+            <span class="status-dot"></span>
+            <span class="project-name">schema</span>
+            <span class="project-progress">--</span>
+          </li>
+          <li class="project-item">
+            <span class="status-dot"></span>
+            <span class="project-name">orchestration</span>
+            <span class="project-progress">--</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">SUMMARY</h3>
+        <div class="summary-stats">
+          <div class="summary-row">
+            <span>Total</span>
+            <span>8</span>
+          </div>
+          <div class="summary-row">
+            <span>Active</span>
+            <span>5</span>
+          </div>
+          <div class="summary-row">
+            <span>Dev</span>
+            <span>1</span>
+          </div>
+          <div class="summary-row">
+            <span>Docs</span>
+            <span>2</span>
+          </div>
+          <div class="summary-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd;">
+            <span>Overall</span>
+            <span>72%</span>
+          </div>
+          <div class="progress-bar-small">
+            <div class="fill" style="width: 72%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">SERVICES</h3>
+        <div class="summary-stats">
+          <div class="summary-row">
+            <span>&#9675; Healthy</span>
+            <span>6/7</span>
+          </div>
+          <div class="summary-row">
+            <span>&#9679; Unhealthy</span>
+            <span>1</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Canvas -->
+    <main class="canvas">
+      <!-- SVG Edges -->
+      <svg class="edges-layer">
+        <!-- hub -> ae -->
+        <path class="edge animated" d="M 270 130 L 420 130" />
+        <polygon class="edge-arrow" points="420,130 410,125 410,135" />
+
+        <!-- hub -> feature -->
+        <path class="edge" d="M 200 160 L 200 220" />
+        <polygon class="edge-arrow" points="200,220 195,210 205,210" />
+
+        <!-- ae -> aep -->
+        <path class="edge animated" d="M 490 160 L 490 220" />
+        <polygon class="edge-arrow" points="490,220 485,210 495,210" />
+
+        <!-- feature -> aep -->
+        <path class="edge animated" d="M 270 260 L 420 260" />
+        <polygon class="edge-arrow" points="420,260 410,255 410,265" />
+
+        <!-- feature -> sub -->
+        <path class="edge" d="M 200 290 L 200 350" />
+        <polygon class="edge-arrow" points="200,350 195,340 205,340" />
+
+        <!-- sub -> dashboard -->
+        <path class="edge animated" d="M 270 390 L 420 390" />
+        <polygon class="edge-arrow" points="420,390 410,385 410,395" />
+
+        <!-- All to orchestration -->
+        <path class="edge" d="M 350 430 L 350 480" style="stroke-dasharray: 3,3; stroke: #999;" />
+      </svg>
+
+      <!-- Node: hub -->
+      <div class="node compact" style="left: 130px; top: 100px;">
+        <div class="node-header">
+          <span class="status-dot active"></span>
+          <span>hub</span>
+        </div>
+        <div class="node-body">
+          <div class="progress-bar">
+            <div class="fill" style="width: 65%"></div>
+          </div>
+          <div class="node-stats" style="margin-top: 4px;">65%</div>
+        </div>
+      </div>
+
+      <!-- Node: ae (Selected) -->
+      <div class="node selected" style="left: 420px; top: 80px;">
+        <div class="node-header">
+          <span class="status-dot selected"></span>
+          <span>automation_ae</span>
+        </div>
+        <div class="node-body">
+          <div class="node-progress">
+            <div class="node-progress-label">PRD Progress</div>
+            <div class="progress-bar">
+              <div class="fill" style="width: 80%"></div>
+            </div>
+          </div>
+          <div class="node-stats">
+            <span>12 commits</span>
+            <span>2 PRs</span>
+            <span>5 issues</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Node: feature -->
+      <div class="node compact" style="left: 130px; top: 220px;">
+        <div class="node-header">
+          <span class="status-dot active"></span>
+          <span>feature</span>
+        </div>
+        <div class="node-body">
+          <div class="progress-bar">
+            <div class="fill" style="width: 100%"></div>
+          </div>
+          <div class="node-stats" style="margin-top: 4px;">100%</div>
+        </div>
+      </div>
+
+      <!-- Node: aep -->
+      <div class="node compact" style="left: 420px; top: 220px;">
+        <div class="node-header">
+          <span class="status-dot active"></span>
+          <span>aep</span>
+        </div>
+        <div class="node-body">
+          <div class="progress-bar">
+            <div class="fill" style="width: 45%"></div>
+          </div>
+          <div class="node-stats" style="margin-top: 4px;">45%</div>
+        </div>
+      </div>
+
+      <!-- Node: sub -->
+      <div class="node compact" style="left: 130px; top: 350px;">
+        <div class="node-header">
+          <span class="status-dot active"></span>
+          <span>sub</span>
+        </div>
+        <div class="node-body">
+          <div class="progress-bar">
+            <div class="fill" style="width: 60%"></div>
+          </div>
+          <div class="node-stats" style="margin-top: 4px;">60%</div>
+        </div>
+      </div>
+
+      <!-- Node: dashboard -->
+      <div class="node compact" style="left: 420px; top: 350px;">
+        <div class="node-header">
+          <span class="status-dot active"></span>
+          <span>dashboard</span>
+        </div>
+        <div class="node-body">
+          <div class="progress-bar">
+            <div class="fill" style="width: 90%"></div>
+          </div>
+          <div class="node-stats" style="margin-top: 4px;">90%</div>
+        </div>
+      </div>
+
+      <!-- Node: orchestration (docs hub) -->
+      <div class="node" style="left: 200px; top: 480px; min-width: 300px;">
+        <div class="node-header">
+          <span class="status-dot"></span>
+          <span>orchestration (docs hub)</span>
+        </div>
+        <div class="node-body">
+          <div class="progress-bar">
+            <div class="fill" style="width: 0%"></div>
+          </div>
+          <div class="node-stats" style="margin-top: 4px; color: #999;">-- docs only --</div>
+        </div>
+      </div>
+
+      <!-- Zoom Controls -->
+      <div class="canvas-controls">
+        <span>Zoom: 100%</span>
+        <button>+</button>
+        <button>-</button>
+        <button>Fit</button>
+      </div>
+    </main>
+
+    <!-- Detail Panel -->
+    <aside class="detail-panel">
+      <div class="detail-header">
+        <span class="detail-title">automation_ae</span>
+        <span class="detail-close">&times;</span>
+      </div>
+
+      <div class="detail-section">
+        <h4 class="detail-section-title">STATUS</h4>
+        <div class="detail-row">
+          <span class="detail-label">State</span>
+          <span class="detail-value">&#9675; Active</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Tech</span>
+          <span class="detail-value">Python, React</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Path</span>
+          <span class="detail-value" style="font-size: 10px;">C:\claude\automation_ae</span>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h4 class="detail-section-title">PRD PROGRESS</h4>
+        <div class="detail-progress-item">
+          <div class="detail-progress-header">
+            <span>PRD-0001</span>
+            <span>85%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="fill" style="width: 85%"></div>
+          </div>
+        </div>
+        <div class="detail-progress-item">
+          <div class="detail-progress-header">
+            <span>PRD-0002</span>
+            <span>40%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="fill" style="width: 40%"></div>
+          </div>
+        </div>
+        <div class="detail-progress-item">
+          <div class="detail-progress-header">
+            <span>PRD-0007</span>
+            <span>100%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="fill" style="width: 100%"></div>
+          </div>
+        </div>
+        <div class="detail-progress-item" style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #ddd;">
+          <div class="detail-progress-header">
+            <span style="font-weight: 600;">Overall</span>
+            <span style="font-weight: 600;">80%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="fill" style="width: 80%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h4 class="detail-section-title">SERVICES</h4>
+        <div class="service-status">
+          <span class="status-dot active"></span>
+          <span class="service-name">ae-backend</span>
+          <span class="service-badge ok">OK</span>
+          <span class="service-time">45ms</span>
+        </div>
+        <div class="service-status">
+          <span class="status-dot active"></span>
+          <span class="service-name">ae-frontend</span>
+          <span class="service-badge ok">OK</span>
+          <span class="service-time">12ms</span>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h4 class="detail-section-title">GITHUB ACTIVITY</h4>
+        <div class="detail-row">
+          <span class="detail-label">&#9675; Commits (7d)</span>
+          <span class="detail-value">12</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">&#9675; Open PRs</span>
+          <span class="detail-value">2</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">&#9675; Open Issues</span>
+          <span class="detail-value">5</span>
+        </div>
+        <div style="margin-top: 12px;">
+          <div style="font-size: 10px; color: #666; margin-bottom: 6px;">Recent Commits:</div>
+          <div class="commit-item">
+            <div class="commit-message">feat: add render queue...</div>
+            <div class="commit-time">2h ago</div>
+          </div>
+          <div class="commit-item">
+            <div class="commit-message">fix: template error...</div>
+            <div class="commit-time">1d ago</div>
+          </div>
+          <div class="commit-item">
+            <div class="commit-message">docs: update README...</div>
+            <div class="commit-time">2d ago</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h4 class="detail-section-title">DEPENDENCIES</h4>
+        <div class="dependency-item dependency-in">automation_hub (DB)</div>
+        <div class="dependency-item dependency-in">automation_aep (mapping)</div>
+        <div class="dependency-item dependency-out">automation_dashboard</div>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>

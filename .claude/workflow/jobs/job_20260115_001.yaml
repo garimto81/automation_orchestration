@@ -1,26 +1,75 @@
 job_id: job_20260115_001
-created_at: 2026-01-15T00:00:00
-request: "배포까지 모두 작업 처리"
+created_at: 2026-01-15T12:00:00
+request: |
+  전체 7개 모듈 시스템 설계 및 Overview Dashboard 통합
+  1. GFX 시뮬레이터 - 1분마다 1핸드 생성
+  2. NAS 폴더 동기화
+  3. NAS-Supabase Sync (Docker)
+  4. Supabase DB 종합 설계
+  5. Main Dashboard - 방송 순서 핸드 선택
+  6. Sub Dashboard - 자막/렌더링 지시
+  7. AE-Nexrender Module
 status: in_progress
+
+modules:
+  - id: module_1
+    name: "GFX 시뮬레이터"
+    description: "25/10 SC 기준 데이터를 1분마다 1핸드씩 생성"
+    status: design
+
+  - id: module_2
+    name: "NAS 동기화"
+    description: "시뮬레이터 데이터를 NAS 폴더에 동기화"
+    depends_on: module_1
+    status: design
+
+  - id: module_3
+    name: "NAS-Supabase Sync"
+    description: "NAS JSON DB를 Supabase로 마이그레이션 (Docker)"
+    depends_on: module_2
+    status: design
+
+  - id: module_4
+    name: "Supabase DB 종합"
+    description: "gfx/wsop+/manual/cuesheet/aep/진행상황 DB 설계"
+    status: design
+
+  - id: module_5
+    name: "Main Dashboard"
+    description: "방송 순서 핸드 선택, 해설진 커뮤니케이션"
+    depends_on: module_4
+    status: design
+
+  - id: module_6
+    name: "Sub Dashboard"
+    description: "자막 데이터, 렌더링 지시"
+    depends_on: [module_4, module_5]
+    status: design
+
+  - id: module_7
+    name: "AE-Nexrender Module"
+    description: "AE 렌더링 → 로컬 네트워크 저장"
+    depends_on: module_6
+    status: design
 
 tasks:
   - id: task_001
-    agent: code-reviewer
-    action: "변경 파일 품질 검사"
+    agent: architect
+    action: "전체 7개 모듈 아키텍처 설계 및 데이터 흐름 정의"
     depends_on: null
     output_file: results/task_001.yaml
-    status: pending
+    status: in_progress
 
   - id: task_002
-    agent: security-auditor
-    action: "보안 취약점 검사"
-    depends_on: null
+    agent: database-specialist
+    action: "Supabase 통합 스키마 설계 (6개 DB 통합)"
+    depends_on: task_001
     output_file: results/task_002.yaml
-    status: pending
+    status: waiting
 
   - id: task_003
-    agent: github-engineer
-    action: "커밋 생성 및 푸시"
-    depends_on: [task_001, task_002]
+    agent: frontend-dev
+    action: "Overview Dashboard에 7개 모듈 노드 추가"
+    depends_on: task_001
     output_file: results/task_003.yaml
     status: waiting

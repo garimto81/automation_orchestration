@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'SF Mono', Consolas, Monaco, monospace;
+  background: #fff;
+  color: #000;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* React Flow overrides for B&W theme */
+.react-flow__node {
+  border-radius: 0;
+}
+
+.react-flow__edge-path {
+  stroke: #000;
+  stroke-width: 1;
+}
+
+.react-flow__controls {
+  border: 1px solid #000;
+  border-radius: 0;
+}
+
+.react-flow__controls-button {
+  border: none;
+  border-bottom: 1px solid #000;
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none;
+}
+
+.react-flow__controls-button:hover {
+  background: #000;
+}
+
+.react-flow__controls-button:hover svg {
+  fill: #fff;
+}
+
+.react-flow__minimap {
+  border: 1px solid #000;
+  border-radius: 0;
+}

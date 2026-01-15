@@ -1,49 +1,448 @@
 task_id: task_001
-agent: code-reviewer
+agent: architect
 status: completed
-completed_at: '2026-01-15T00:00:00Z'
+timestamp: "2026-01-15T00:00:00Z"
+
 output:
   summary: |
-    검사 완료. 전반적으로 높은 수준이지만 일부 일관성 개선 필요.
-  
-  issues_found:
-    - issue_id: 1
-      severity: medium
-      category: broken-links
-      title: "gfx/ 폴더 하위 링크 검증 불가"
-      description: |
-        GFX_AEP_FIELD_MAPPING.md에서 gfx/00-common/, 
-        gfx/01-categories/ 등 하위 문서 참조하나
-        실제 파일 구조 확인 불가능
-    
-    - issue_id: 2
-      severity: medium
-      category: format-inconsistency
-      title: "메타데이터 및 목차 형식 불일치"
-      description: |
-        문서별 메타데이터, 목차 링크 위치 및 형식 다양
-        표준화 필요
-  
-  recommendations:
-    - rec_id: 1
-      priority: high
-      title: "gfx/ 폴더 링크 검증"
-    
-    - rec_id: 2
-      priority: high
-      title: "메타데이터 표준화"
-    
-    - rec_id: 3
-      priority: medium
-      title: "목차 링크 일관화"
+    WSOP 포커 방송 자동화 7-모듈 시스템 아키텍처 설계 완료.
+    GFX 시뮬레이터에서 시작하여 NAS, Supabase, Dashboard를 거쳐 AE-Nexrender로
+    최종 렌더링되는 End-to-End 파이프라인 정의.
 
-  files_reviewed: 8
-  quality_score:
-    overall: 7.8
-    markdown_syntax: 8.5
-    consistency: 7.0
-    completeness: 8.5
+  architecture_diagram: |
+    ================================================================================
+                      WSOP BROADCAST AUTOMATION - 7 MODULE ARCHITECTURE
+    ================================================================================
 
-  net_positive: true
+    [MODULE 1] GFX Simulator                [MODULE 2] NAS Sync
+    -------------------------               ----------------------
+    +-------------------+                   +-------------------+
+    | GFX Data Gen      |  JSON/1min/hand   |   NAS Folder      |
+    | 25/10 SC Blinds   | =================>| (SMB Share)       |
+    | Streamlit UI      |                   |                   |
+    +-------------------+                   +--------+----------+
+                                                     |
+                                                     | File Watch
+                                                     v
+    [MODULE 3] NAS-Supabase Sync (Docker Container)
+    ------------------------------------------------
+    +-------------------+    +-------------------+    +-------------------+
+    |   Watchdog        | => |   JSON Parser     | => |   Pydantic        |
+    |   File Monitor    |    |   Validation      |    |   Schema Check    |
+    +-------------------+    +-------------------+    +--------+----------+
+                                                              |
+                                                              | REST API
+                                                              v
+    [MODULE 4] Supabase DB
+    ----------------------
+    +=========================================================================+
+    |                           SUPABASE (PostgreSQL 15)                       |
+    +-------------------------------------------------------------------------+
+    | gfx_db        | wsop+_db      | manual_db     | cuesheet_db   | aep_db  |
+    |---------------|---------------|---------------|---------------|---------|
+    | gfx_sessions  | tournaments   | players       | broadcast_    | comps   |
+    | hands         | payouts       | profiles      | sessions      | layers  |
+    | hand_players  | players       | overrides     | cue_sheets    | mappings|
+    | hand_actions  | chip_counts   |               | cue_items     |         |
+    +-------------------------------------------------------------------------+
+    | progress_db (render_jobs, render_outputs, job_queue)                    |
+    +=========================================================================+
+                           |                              |
+             Realtime      |                              | Realtime
+             Broadcast     v                              v
+    [MODULE 5] Main Dashboard           [MODULE 6] Sub Dashboard
+    -------------------------           -------------------------
+    +------------------------+          +------------------------+
+    | Hand Browser           |          | Caption Timeline       |
+    | - Hand Selection       | WebSocket| - Caption Preview      |
+    | - Grade Filter         |=========>| - Template Select      |
+    | Cuesheet Editor        |          | Render Queue           |
+    | - Broadcast Order      |          | - Queue Management     |
+    | - Time Scheduling      |          | - Progress Monitor     |
+    | Commentary Panel       |          | - Output Preview       |
+    +------------------------+          +-----------+------------+
+                                                    |
+                                                    | render_jobs INSERT
+                                                    v
+    [MODULE 7] AE-Nexrender Module
+    ------------------------------
+    +-------------------+    +-------------------+    +-------------------+
+    | render_jobs       | => | After Effects     | => | Output Files      |
+    | Queue Polling     |    | aerender.exe      |    | MP4/MOV/PNG       |
+    | Priority Sort     |    | Nexrender Worker  |    |                   |
+    +-------------------+    +-------------------+    +--------+----------+
+                                                              |
+                                                              | File Copy
+                                                              v
+                                                     +-------------------+
+                                                     | \\nas\renders     |
+                                                     | Local Network     |
+                                                     +--------+----------+
+                                                              |
+                                                              v
+                                                     +-------------------+
+                                                     | vMix / OBS        |
+                                                     | Broadcast Output  |
+                                                     +-------------------+
 
-errors: null
+  data_flow:
+    overview: |
+      단방향 파이프라인: GFX -> NAS -> Supabase -> Dashboard -> AE -> Output
+      양방향 통신: Main <-> Sub Dashboard (WebSocket)
+
+    flows:
+      - name: "1. GFX Data Generation"
+        from: "GFX Simulator"
+        to: "NAS Folder"
+        protocol: "File Write (JSON)"
+        frequency: "1 hand per minute"
+        data: "25/10 SC blind structure hand data"
+
+      - name: "2. NAS to Sync Module"
+        from: "NAS Folder"
+        to: "NAS-Supabase Sync"
+        protocol: "File Watch (Watchdog)"
+        trigger: "File creation/modification"
+
+      - name: "3. Sync to Supabase"
+        from: "NAS-Supabase Sync"
+        to: "Supabase DB"
+        protocol: "REST API (supabase-py)"
+        operations: "INSERT/UPSERT"
+        realtime: "Broadcast on INSERT"
+
+      - name: "4. Supabase to Main Dashboard"
+        from: "Supabase DB"
+        to: "Main Dashboard"
+        protocol: "Supabase Realtime"
+        channel: "gfx_hands"
+        trigger: "INSERT on hands table"
+
+      - name: "5. Main to Sub Dashboard"
+        from: "Main Dashboard"
+        to: "Sub Dashboard"
+        protocol: "WebSocket Direct"
+        events:
+          - "cue_item_selected"
+          - "broadcast_order_changed"
+          - "priority_update"
+
+      - name: "6. Sub to Supabase (Render Request)"
+        from: "Sub Dashboard"
+        to: "Supabase DB"
+        protocol: "REST API"
+        table: "render_jobs"
+        operation: "INSERT"
+
+      - name: "7. AE-Nexrender Polling"
+        from: "Supabase DB"
+        to: "AE-Nexrender"
+        protocol: "REST API Polling"
+        interval: "5 seconds"
+        query: "WHERE status = 'pending' ORDER BY priority"
+
+      - name: "8. Render Output"
+        from: "AE-Nexrender"
+        to: "NAS Renders"
+        protocol: "File Write"
+        formats: ["MP4", "MOV", "PNG Sequence"]
+
+      - name: "9. Status Update"
+        from: "AE-Nexrender"
+        to: "Supabase DB"
+        protocol: "REST API"
+        table: "render_jobs"
+        operation: "UPDATE (status, progress, output_path)"
+
+  tech_stack:
+    module_1_gfx_simulator:
+      language: "Python 3.11+"
+      framework: "Streamlit"
+      libraries: ["pandas", "pydantic", "json"]
+      purpose: "GFX 테스트 데이터 생성"
+      output: "JSON files"
+
+    module_2_nas_sync:
+      language: "Python 3.11+"
+      framework: "Watchdog"
+      libraries: ["shutil", "pathlib"]
+      purpose: "시뮬레이터 -> NAS 폴더 동기화"
+      protocol: "SMB/CIFS"
+
+    module_3_nas_supabase_sync:
+      language: "Python 3.11+"
+      framework: "asyncio, Docker"
+      libraries:
+        - "watchdog (file monitoring)"
+        - "pydantic v2 (validation)"
+        - "supabase-py (API client)"
+        - "aiofiles (async file I/O)"
+      purpose: "NAS JSON -> Supabase 마이그레이션"
+      container: "Docker with volume mount"
+
+    module_4_supabase_db:
+      database: "PostgreSQL 15"
+      platform: "Supabase"
+      features:
+        - "Realtime subscriptions"
+        - "Row Level Security (RLS)"
+        - "Unified Views"
+        - "Database Functions"
+      schemas:
+        - "gfx_db: GFX JSON 파싱 데이터"
+        - "wsop+_db: WSOP+ 토너먼트 데이터"
+        - "manual_db: 수동 입력 데이터"
+        - "cuesheet_db: 방송 큐시트"
+        - "aep_db: AE 템플릿 매핑"
+        - "progress_db: 렌더링 진행 상태"
+
+    module_5_main_dashboard:
+      language: "TypeScript"
+      framework: "Next.js 14, React 18"
+      libraries:
+        - "@supabase/supabase-js"
+        - "TanStack Query"
+        - "Tailwind CSS"
+        - "socket.io-client"
+      purpose: "연출자용 핸드 선택/큐시트 관리"
+      deployment: "Vercel"
+
+    module_6_sub_dashboard:
+      language: "TypeScript"
+      framework: "Next.js 14, React 18"
+      libraries:
+        - "@supabase/supabase-js"
+        - "TanStack Query"
+        - "Tailwind CSS"
+        - "socket.io-client"
+      purpose: "자막 오퍼레이터용 렌더링 관리"
+      deployment: "Vercel"
+
+    module_7_ae_nexrender:
+      language: "Node.js 20+"
+      framework: "Nexrender"
+      libraries:
+        - "@supabase/supabase-js"
+        - "nexrender-core"
+        - "nexrender-action-encode"
+      purpose: "After Effects 자동 렌더링"
+      output_formats: ["MP4 (H.264)", "MOV (ProRes)", "PNG Sequence"]
+      deployment: "Local (Windows)"
+
+  module_io:
+    module_1_gfx_simulator:
+      inputs:
+        - name: "Blind Structure Config"
+          type: "JSON"
+          example: '{"small_blind": 25, "big_blind": 10, "ante": 0}'
+        - name: "Player Pool"
+          type: "JSON Array"
+          example: '[{"name": "Phil Ivey", "country": "US"}, ...]'
+      outputs:
+        - name: "Hand JSON"
+          type: "JSON File"
+          path: "\\nas\\gfx_data\\hands\\hand_{timestamp}.json"
+          schema:
+            hand_id: "string"
+            session_id: "string"
+            hand_number: "integer"
+            blinds: "object"
+            players: "array"
+            actions: "array"
+            board: "array"
+            winners: "array"
+
+    module_2_nas_sync:
+      inputs:
+        - name: "GFX JSON Files"
+          type: "JSON"
+          source: "Module 1"
+      outputs:
+        - name: "Synchronized Files"
+          type: "JSON"
+          destination: "\\nas\\gfx_shared\\"
+
+    module_3_nas_supabase_sync:
+      inputs:
+        - name: "NAS JSON Files"
+          type: "JSON"
+          watch_path: "\\nas\\gfx_shared\\"
+      outputs:
+        - name: "Supabase Records"
+          type: "Database Rows"
+          tables:
+            - "gfx_db.hands"
+            - "gfx_db.hand_players"
+            - "gfx_db.hand_actions"
+            - "gfx_db.hand_cards"
+
+    module_4_supabase_db:
+      inputs:
+        - name: "GFX Data"
+          source: "Module 3"
+        - name: "WSOP+ Data"
+          source: "External Import"
+        - name: "Manual Data"
+          source: "Dashboard UI"
+      outputs:
+        - name: "Unified Views"
+          tables:
+            - "unified_players"
+            - "unified_events"
+            - "unified_chip_data"
+        - name: "Realtime Events"
+          channels:
+            - "gfx_hands"
+            - "render_jobs"
+            - "render_outputs"
+
+    module_5_main_dashboard:
+      inputs:
+        - name: "Realtime Hand Data"
+          source: "Supabase Realtime"
+          channel: "gfx_hands"
+        - name: "Player Data"
+          source: "unified_players view"
+        - name: "Event Data"
+          source: "unified_events view"
+      outputs:
+        - name: "Cue Items"
+          destination: "cuesheet_db.cue_items"
+          format:
+            cue_item_id: "uuid"
+            hand_id: "uuid"
+            caption_type: "enum"
+            scheduled_time: "timestamp"
+            priority: "integer"
+        - name: "WebSocket Events"
+          destination: "Sub Dashboard"
+          events:
+            - "cue_item_selected"
+            - "broadcast_order_changed"
+
+    module_6_sub_dashboard:
+      inputs:
+        - name: "Cue Items"
+          source: "cuesheet_db.cue_items"
+        - name: "WebSocket Events"
+          source: "Main Dashboard"
+        - name: "AEP Template Data"
+          source: "aep_db.compositions"
+      outputs:
+        - name: "Render Jobs"
+          destination: "progress_db.render_jobs"
+          format:
+            job_id: "uuid"
+            comp_name: "string"
+            gfx_data: "jsonb"
+            output_format: "enum"
+            priority: "integer"
+            status: "pending"
+
+    module_7_ae_nexrender:
+      inputs:
+        - name: "Render Jobs"
+          source: "progress_db.render_jobs WHERE status='pending'"
+        - name: "AEP Template"
+          source: "\\nas\\templates\\CyprusDesign.aep"
+        - name: "GFX Data"
+          source: "render_jobs.gfx_data"
+      outputs:
+        - name: "Rendered Files"
+          destination: "\\nas\\renders\\{date}\\{job_id}.{format}"
+          formats: ["mp4", "mov", "png"]
+        - name: "Status Updates"
+          destination: "progress_db.render_jobs"
+          fields: ["status", "progress", "output_path", "completed_at"]
+        - name: "Output Records"
+          destination: "progress_db.render_outputs"
+
+  database_schema_summary:
+    gfx_db:
+      tables: ["gfx_sessions", "hands", "hand_players", "hand_actions", "hand_cards", "hand_results"]
+      purpose: "GFX JSON 파싱 데이터 저장"
+
+    wsop_plus_db:
+      tables: ["tournaments", "blind_levels", "payouts", "player_instances", "schedules"]
+      purpose: "WSOP+ 공식 토너먼트 데이터"
+
+    manual_db:
+      tables: ["players_master", "player_profiles", "commentators", "venues", "events", "feature_tables"]
+      purpose: "수동 입력 및 오버라이드 데이터"
+
+    cuesheet_db:
+      tables: ["broadcast_sessions", "cue_sheets", "cue_items", "cue_templates", "gfx_triggers"]
+      purpose: "방송 순서 및 큐시트 관리"
+
+    aep_db:
+      tables: ["templates", "compositions", "composition_layers", "layer_data_mappings"]
+      purpose: "AE 템플릿 구조 및 매핑 규칙"
+
+    progress_db:
+      tables: ["render_jobs", "render_outputs", "job_queue", "sync_status"]
+      purpose: "렌더링 진행 상태 및 작업 큐"
+
+  scaling_considerations:
+    - area: "GFX Simulator"
+      concern: "Multiple table simulation"
+      solution: "Multi-process with shared session management"
+
+    - area: "NAS-Supabase Sync"
+      concern: "High file throughput"
+      solution: "Async batch processing, connection pooling"
+
+    - area: "Supabase"
+      concern: "Realtime connection limits"
+      solution: "Connection pooling, channel multiplexing"
+
+    - area: "Dashboard"
+      concern: "Concurrent users"
+      solution: "Edge caching, optimistic updates"
+
+    - area: "AE-Nexrender"
+      concern: "Render queue backlog"
+      solution: "Multiple workers, priority queue, parallel rendering"
+
+  potential_bottlenecks:
+    - location: "Module 3 (NAS-Supabase Sync)"
+      issue: "Large JSON file parsing"
+      mitigation: "Streaming JSON parser, incremental updates"
+
+    - location: "Module 7 (AE-Nexrender)"
+      issue: "After Effects rendering time"
+      mitigation: "Pre-render cache, template optimization, multi-worker"
+
+    - location: "WebSocket (Main-Sub)"
+      issue: "Connection stability"
+      mitigation: "Reconnection logic, message queue fallback"
+
+  implementation_phases:
+    phase_1:
+      name: "Core Pipeline"
+      duration: "2 weeks"
+      modules: [1, 2, 3, 4]
+      deliverables:
+        - "GFX Simulator MVP"
+        - "NAS file sync"
+        - "Docker container for sync"
+        - "Supabase schema deployment"
+
+    phase_2:
+      name: "Dashboard MVP"
+      duration: "3 weeks"
+      modules: [5, 6]
+      dependencies: ["Phase 1 complete"]
+      deliverables:
+        - "Main Dashboard (hand browser, cuesheet)"
+        - "Sub Dashboard (caption selection, render queue)"
+        - "WebSocket integration"
+
+    phase_3:
+      name: "Rendering Integration"
+      duration: "2 weeks"
+      modules: [7]
+      dependencies: ["Phase 2 complete"]
+      deliverables:
+        - "Nexrender worker setup"
+        - "End-to-end pipeline test"
+        - "Error handling and retry logic"
