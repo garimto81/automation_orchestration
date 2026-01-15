@@ -1,0 +1,489 @@
+task_id: task_002
+agent: architect
+status: completed
+started_at: "2026-01-15T10:00:00Z"
+completed_at: "2026-01-15T10:15:00Z"
+output:
+  summary: |
+    Sub Dashboard (Module 5) 컴포넌트 아키텍처 설계 완료.
+    26개 컴포지션 그리드, 84개 필드 슬롯 매핑, 렌더 큐 관리, Main Dashboard WebSocket 통신 프로토콜 정의.
+    React 18 + Next.js 14 + TypeScript + Zustand 스택 기반 설계.
+
+  component_tree: |
+    SubDashboard/
+    +-- src/
+    |   +-- app/                           # Next.js 14 App Router
+    |   |   +-- layout.tsx                 # Root Layout
+    |   |   +-- page.tsx                   # Dashboard Entry
+    |   |   +-- composition/[id]/page.tsx  # Composition Detail
+    |   |   +-- render-queue/page.tsx      # Render Queue View
+    |   |   +-- output/page.tsx            # Output Viewer
+    |   |
+    |   +-- components/
+    |   |   +-- layout/
+    |   |   |   +-- Header.tsx             # RenderQueueStatus + OutputFolder
+    |   |   |   +-- MainContent.tsx        # Content Container
+    |   |   |   +-- TabNavigation.tsx      # Caption/RenderQueue/Output Tabs
+    |   |   |
+    |   |   +-- features/
+    |   |   |   +-- composition-grid/
+    |   |   |   |   +-- CompositionGrid.tsx        # 26 Compositions Container
+    |   |   |   |   +-- CompositionCard.tsx        # Individual Comp Card
+    |   |   |   |   +-- CompositionThumbnail.tsx   # Thumbnail Preview
+    |   |   |   |   +-- CompositionFilter.tsx      # Filter/Search Bar
+    |   |   |   |   +-- CategoryFilter.tsx         # chip_display/payout/etc
+    |   |   |   |
+    |   |   |   +-- slot-mapping/
+    |   |   |   |   +-- SlotMappingPanel.tsx       # 84 Fields Main Panel
+    |   |   |   |   +-- FieldMapper.tsx            # Field Mapping Table
+    |   |   |   |   +-- FieldRow.tsx               # Individual Field Row
+    |   |   |   |   +-- DataSourceSelector.tsx     # GFX/WSOP+/Manual Toggle
+    |   |   |   |   +-- SlotIndexEditor.tsx        # Slot Range Editor
+    |   |   |   |   +-- TransformSelector.tsx      # UPPER/format_chips/etc
+    |   |   |   |   +-- SaveMappingButton.tsx      # Save/Apply Button
+    |   |   |   |
+    |   |   |   +-- data-preview/
+    |   |   |   |   +-- DataPreviewPanel.tsx       # Live Data Preview
+    |   |   |   |   +-- SlotPreview.tsx            # Slot Data Preview
+    |   |   |   |   +-- JSONPreview.tsx            # render_gfx_data_v3 Preview
+    |   |   |   |   +-- CompPreview.tsx            # AEP Composition Preview
+    |   |   |   |
+    |   |   |   +-- render-queue/
+    |   |   |   |   +-- RenderQueue.tsx            # Queue Container
+    |   |   |   |   +-- RenderJobCard.tsx          # Individual Job Card
+    |   |   |   |   +-- JobProgressBar.tsx         # Progress Indicator
+    |   |   |   |   +-- QueueControls.tsx          # Pause/Resume/Priority
+    |   |   |   |   +-- ActiveJobs.tsx             # Currently Rendering
+    |   |   |   |   +-- QueuedJobs.tsx             # Pending Jobs
+    |   |   |   |   +-- CompletedJobs.tsx          # Finished Jobs
+    |   |   |   |   +-- JobLogs.tsx                # Error/Log Viewer
+    |   |   |   |
+    |   |   |   +-- output-viewer/
+    |   |   |       +-- OutputViewer.tsx           # Output Container
+    |   |   |       +-- VideoPreview.tsx           # Video Player
+    |   |   |       +-- OutputMetadata.tsx         # File Info
+    |   |   |       +-- DownloadButton.tsx         # Download Action
+    |   |   |
+    |   |   +-- ui/                        # Shared UI Components (shadcn/ui)
+    |   |       +-- Button.tsx
+    |   |       +-- Card.tsx
+    |   |       +-- Select.tsx
+    |   |       +-- Table.tsx
+    |   |       +-- Progress.tsx
+    |   |       +-- Badge.tsx
+    |   |
+    |   +-- hooks/
+    |   |   +-- useWebSocketFromMain.ts    # WebSocket (Main -> Sub)
+    |   |   +-- useWebSocketToMain.ts      # WebSocket (Sub -> Main)
+    |   |   +-- useRenderQueue.ts          # Render Queue State
+    |   |   +-- useSlotMapping.ts          # Slot Mapping State
+    |   |   +-- useCompositions.ts         # Composition Data Query
+    |   |   +-- useRenderMonitoring.ts     # Real-time Render Status
+    |   |   +-- useDataPreview.ts          # Live Data Preview
+    |   |
+    |   +-- stores/
+    |   |   +-- renderQueueStore.ts        # RenderQueueStore (Zustand)
+    |   |   +-- slotMappingStore.ts        # SlotMappingStore (Zustand)
+    |   |   +-- compositionStore.ts        # CompositionStore (Zustand)
+    |   |   +-- websocketStore.ts          # WebSocket Connection State
+    |   |
+    |   +-- types/
+    |   |   +-- composition.ts             # Composition Types
+    |   |   +-- slotMapping.ts             # SlotMapping Types
+    |   |   +-- renderJob.ts               # RenderJob Types
+    |   |   +-- websocket.ts               # WebSocket Message Types
+    |   |   +-- gfxData.ts                 # render_gfx_data_v3 Schema
+    |   |
+    |   +-- lib/
+    |   |   +-- supabase.ts                # Supabase Client
+    |   |   +-- websocket.ts               # WebSocket Client
+    |   |   +-- transforms.ts              # Data Transform Functions
+    |   |   +-- validators.ts              # Schema Validators
+    |   |
+    |   +-- constants/
+    |       +-- compositions.ts            # 26 Composition Definitions
+    |       +-- categories.ts              # 9 Categories
+    |       +-- transforms.ts              # Transform Function Names
+
+  state_architecture: |
+    ## Zustand Stores Architecture
+
+    ### 1. RenderQueueStore
+    ```typescript
+    interface RenderJob {
+      jobId: string;
+      handId: string;
+      compositionName: string;
+      status: 'pending' | 'queued' | 'rendering' | 'completed' | 'failed';
+      priority: number;
+      progress: number;
+      createdAt: Date;
+      startedAt?: Date;
+      completedAt?: Date;
+      errorMessage?: string;
+      outputPath?: string;
+    }
+
+    interface RenderQueueState {
+      jobs: RenderJob[];
+      activeJobIds: string[];
+      selectedJobId: string | null;
+      isPaused: boolean;
+      maxConcurrent: number;
+
+      // Actions
+      addJob: (job: Omit<RenderJob, 'jobId' | 'createdAt'>) => void;
+      updateJobStatus: (jobId: string, status: RenderJob['status'], progress?: number) => void;
+      updateJobProgress: (jobId: string, progress: number) => void;
+      cancelJob: (jobId: string) => void;
+      retryJob: (jobId: string) => void;
+      setPriority: (jobId: string, priority: number) => void;
+      pauseQueue: () => void;
+      resumeQueue: () => void;
+      selectJob: (jobId: string | null) => void;
+      clearCompleted: () => void;
+
+      // Selectors
+      getPendingJobs: () => RenderJob[];
+      getActiveJobs: () => RenderJob[];
+      getCompletedJobs: () => RenderJob[];
+      getFailedJobs: () => RenderJob[];
+    }
+    ```
+
+    ### 2. SlotMappingStore
+    ```typescript
+    interface FieldMapping {
+      fieldId: string;
+      targetFieldKey: string;      // e.g., 'name', 'chips', 'bbs'
+      slotIndex?: number;          // 1-9 for slotted fields
+      sourceTable: string;         // e.g., 'gfx_hand_players'
+      sourceColumn: string;        // e.g., 'player_name'
+      sourceJoin?: string;         // JOIN clause
+      transform: string;           // 'UPPER' | 'format_chips' | 'direct'
+      currentValue?: string;       // Live preview value
+    }
+
+    interface CompositionMapping {
+      compositionName: string;
+      category: string;            // chip_display | payout | etc
+      totalSlots: number;
+      fields: FieldMapping[];
+    }
+
+    interface SlotMappingState {
+      selectedComposition: CompositionMapping | null;
+      dataSource: 'gfx' | 'wsop_plus' | 'manual' | 'unified';
+      selectedFieldId: string | null;
+      isDirty: boolean;
+      previewData: Record<string, string>;
+
+      // Actions
+      selectComposition: (compositionName: string) => Promise<void>;
+      updateMapping: (fieldId: string, updates: Partial<FieldMapping>) => void;
+      setDataSource: (source: SlotMappingState['dataSource']) => void;
+      selectField: (fieldId: string | null) => void;
+      saveMapping: () => Promise<void>;
+      resetMapping: () => void;
+      refreshPreview: () => Promise<void>;
+
+      // Selectors
+      getMappingsBySlot: (slotIndex: number) => FieldMapping[];
+      getUnmappedFields: () => FieldMapping[];
+    }
+    ```
+
+    ### 3. CompositionStore
+    ```typescript
+    interface Composition {
+      id: string;
+      name: string;
+      category: CompositionCategory;
+      width: number;
+      height: number;
+      thumbnailPath: string;
+      layerCount: number;
+      fieldCount: number;
+      slotCount: number;
+      lastUsed?: Date;
+      isFavorite: boolean;
+    }
+
+    type CompositionCategory =
+      | 'chip_display'   // 6 comps
+      | 'payout'         // 3 comps
+      | 'event_info'     // 4 comps
+      | 'schedule'       // 1 comp
+      | 'staff'          // 2 comps
+      | 'player_info'    // 4 comps
+      | 'elimination'    // 2 comps
+      | 'transition'     // 2 comps
+      | 'other';         // 2 comps
+
+    interface CompositionState {
+      compositions: Composition[];
+      selectedId: string | null;
+      filter: {
+        search: string;
+        category: CompositionCategory | 'all';
+        favorites: boolean;
+      };
+
+      // Actions
+      loadCompositions: () => Promise<void>;
+      selectComposition: (id: string) => void;
+      toggleFavorite: (id: string) => void;
+      setFilter: (filter: Partial<CompositionState['filter']>) => void;
+
+      // Selectors
+      getFilteredCompositions: () => Composition[];
+      getCompositionsByCategory: (category: CompositionCategory) => Composition[];
+    }
+    ```
+
+    ### 4. WebSocketStore
+    ```typescript
+    interface WebSocketState {
+      isConnected: boolean;
+      mainDashboardUrl: string;
+      lastMessage: MainToSubMessage | null;
+      messageHistory: MainToSubMessage[];
+      reconnectAttempts: number;
+
+      // Actions
+      connect: () => void;
+      disconnect: () => void;
+      sendToMain: (message: SubToMainMessage) => void;
+      handleMessage: (message: MainToSubMessage) => void;
+      clearHistory: () => void;
+    }
+    ```
+
+  api_endpoints: |
+    ## API Endpoints (Next.js API Routes)
+
+    ### Compositions
+    GET    /api/compositions                     # List 26 compositions with metadata
+    GET    /api/compositions/:name               # Get single composition detail
+    GET    /api/compositions/:name/layers        # Get composition layers
+    GET    /api/compositions/:name/fields        # Get mappable fields (84 total)
+    GET    /api/compositions/:name/thumbnail     # Get thumbnail image
+    GET    /api/compositions/categories/:cat     # Get comps by category
+
+    ### Slot Mappings
+    GET    /api/slot-mappings                    # List all saved mappings
+    GET    /api/slot-mappings/:id                # Get mapping detail
+    POST   /api/slot-mappings                    # Create new mapping
+    PATCH  /api/slot-mappings/:id                # Update mapping
+    DELETE /api/slot-mappings/:id                # Delete mapping
+    POST   /api/slot-mappings/:id/preview        # Generate preview with current data
+    POST   /api/slot-mappings/:id/validate       # Validate mapping configuration
+
+    ### Render Queue
+    GET    /api/render-jobs                      # List all render jobs
+    GET    /api/render-jobs/active               # Get currently rendering jobs
+    GET    /api/render-jobs/pending              # Get queued jobs
+    GET    /api/render-jobs/completed            # Get completed jobs (paginated)
+    POST   /api/render-jobs                      # Create new render job
+    PATCH  /api/render-jobs/:id                  # Update job status
+    PATCH  /api/render-jobs/:id/priority         # Change job priority
+    DELETE /api/render-jobs/:id                  # Cancel job
+    POST   /api/render-jobs/:id/retry            # Retry failed job
+    GET    /api/render-jobs/:id/logs             # Get job logs
+
+    ### Render Outputs
+    GET    /api/render-outputs                   # List completed outputs
+    GET    /api/render-outputs/:id               # Get output metadata
+    GET    /api/render-outputs/:id/video         # Stream video file
+    GET    /api/render-outputs/:id/download      # Download video file
+    DELETE /api/render-outputs/:id               # Delete output
+
+    ### Data Sources (for SlotMapping preview)
+    GET    /api/data/gfx/sessions/:id/hands/:num # Get GFX hand data
+    GET    /api/data/gfx/players                 # Get GFX players
+    GET    /api/data/wsop/events/:id             # Get WSOP+ event data
+    GET    /api/data/wsop/standings/:eventId     # Get WSOP+ standings
+    GET    /api/data/unified/players/:name       # Get unified player view
+    POST   /api/data/transform                   # Apply transform function
+
+  websocket_protocol: |
+    ## WebSocket Communication Protocol (Main <-> Sub)
+
+    ### Connection Configuration
+    ```typescript
+    const WS_CONFIG = {
+      url: 'ws://localhost:3001/ws/dashboard',
+      reconnectInterval: 3000,
+      maxReconnectAttempts: 5,
+      heartbeatInterval: 30000
+    };
+    ```
+
+    ### Main -> Sub Messages
+    ```typescript
+    type MainToSubMessage =
+      | CueItemSelectedMessage
+      | CueItemCancelledMessage
+      | HandUpdatedMessage
+      | SessionChangedMessage
+      | RenderRequestMessage
+      | HeartbeatMessage;
+
+    interface CueItemSelectedMessage {
+      type: 'cue_item_selected';
+      payload: {
+        cueItemId: string;
+        handId: string;
+        compositionName: string;
+        handData: {
+          handNum: number;
+          sessionId: string;
+          players: PlayerData[];
+          boardCards: string[];
+          pot: number;
+          blindLevel: string;
+        };
+        suggestedMappings?: FieldMapping[];
+      };
+      timestamp: string;
+    }
+
+    interface CueItemCancelledMessage {
+      type: 'cue_item_cancelled';
+      payload: {
+        cueItemId: string;
+      };
+      timestamp: string;
+    }
+
+    interface HandUpdatedMessage {
+      type: 'hand_updated';
+      payload: {
+        handId: string;
+        sessionId: string;
+        handNum: number;
+        changedFields: string[];
+        players: PlayerData[];
+      };
+      timestamp: string;
+    }
+
+    interface SessionChangedMessage {
+      type: 'session_changed';
+      payload: {
+        sessionId: string;
+        gameType: 'cash' | 'tournament';
+        eventId?: string;
+      };
+      timestamp: string;
+    }
+
+    interface RenderRequestMessage {
+      type: 'render_request';
+      payload: {
+        requestId: string;
+        compositionName: string;
+        handId: string;
+        priority: number;
+        gfxData: RenderGfxDataV3;
+      };
+      timestamp: string;
+    }
+
+    interface HeartbeatMessage {
+      type: 'heartbeat';
+      payload: {
+        mainStatus: 'connected' | 'busy';
+        activeSession?: string;
+      };
+      timestamp: string;
+    }
+    ```
+
+    ### Sub -> Main Messages
+    ```typescript
+    type SubToMainMessage =
+      | RenderStatusUpdateMessage
+      | RenderCompleteMessage
+      | RenderErrorMessage
+      | MappingChangedMessage
+      | CompositionSelectedMessage
+      | HeartbeatAckMessage;
+
+    interface RenderStatusUpdateMessage {
+      type: 'render_status_update';
+      payload: {
+        jobId: string;
+        requestId?: string;
+        status: 'queued' | 'rendering' | 'completed' | 'failed';
+        progress: number;
+        estimatedRemaining?: number;
+      };
+      timestamp: string;
+    }
+
+    interface RenderCompleteMessage {
+      type: 'render_complete';
+      payload: {
+        jobId: string;
+        requestId?: string;
+        outputPath: string;
+        duration: number;
+        frameCount: number;
+        fileSize: number;
+      };
+      timestamp: string;
+    }
+
+    interface RenderErrorMessage {
+      type: 'render_error';
+      payload: {
+        jobId: string;
+        requestId?: string;
+        errorCode: string;
+        errorMessage: string;
+        retryable: boolean;
+      };
+      timestamp: string;
+    }
+
+    interface MappingChangedMessage {
+      type: 'mapping_changed';
+      payload: {
+        compositionName: string;
+        mappingId: string;
+        changedFields: string[];
+      };
+      timestamp: string;
+    }
+
+    interface CompositionSelectedMessage {
+      type: 'composition_selected';
+      payload: {
+        compositionName: string;
+        category: string;
+        fieldCount: number;
+      };
+      timestamp: string;
+    }
+
+    interface HeartbeatAckMessage {
+      type: 'heartbeat_ack';
+      payload: {
+        subStatus: 'ready' | 'busy' | 'rendering';
+        queueLength: number;
+        activeJobs: number;
+      };
+      timestamp: string;
+    }
+    ```
+
+    ### Message Flow
+    Main -> cue_item_selected -> Sub (auto-select composition, load mapping)
+    Sub -> composition_selected -> Main
+    Main -> hand_updated -> Sub (update preview)
+    Main -> render_request -> Sub (add to queue)
+    Sub -> render_status_update -> Main (progress)
+    Sub -> render_complete -> Main (done)
+
+errors: null

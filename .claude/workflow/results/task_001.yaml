@@ -1,0 +1,49 @@
+task_id: task_001
+agent: code-reviewer
+status: completed
+completed_at: '2026-01-15T00:00:00Z'
+output:
+  summary: |
+    검사 완료. 전반적으로 높은 수준이지만 일부 일관성 개선 필요.
+  
+  issues_found:
+    - issue_id: 1
+      severity: medium
+      category: broken-links
+      title: "gfx/ 폴더 하위 링크 검증 불가"
+      description: |
+        GFX_AEP_FIELD_MAPPING.md에서 gfx/00-common/, 
+        gfx/01-categories/ 등 하위 문서 참조하나
+        실제 파일 구조 확인 불가능
+    
+    - issue_id: 2
+      severity: medium
+      category: format-inconsistency
+      title: "메타데이터 및 목차 형식 불일치"
+      description: |
+        문서별 메타데이터, 목차 링크 위치 및 형식 다양
+        표준화 필요
+  
+  recommendations:
+    - rec_id: 1
+      priority: high
+      title: "gfx/ 폴더 링크 검증"
+    
+    - rec_id: 2
+      priority: high
+      title: "메타데이터 표준화"
+    
+    - rec_id: 3
+      priority: medium
+      title: "목차 링크 일관화"
+
+  files_reviewed: 8
+  quality_score:
+    overall: 7.8
+    markdown_syntax: 8.5
+    consistency: 7.0
+    completeness: 8.5
+
+  net_positive: true
+
+errors: null

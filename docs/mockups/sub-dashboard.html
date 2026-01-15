@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GFX Sub Dashboard - Phase 2 MVP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        broadcast: {
+                            bg: '#0a0e17',
+                            panel: '#141822',
+                            border: '#1e2530',
+                            primary: '#3b82f6',
+                            success: '#10b981',
+                            warning: '#f59e0b',
+                            danger: '#ef4444'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+        .grid-comp {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        @media (min-width: 1920px) {
+            .grid-comp {
+                grid-template-columns: repeat(6, 1fr);
+            }
+        }
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: #141822;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: #3b82f6;
+            border-radius: 3px;
+        }
+        .progress-bar {
+            animation: progress-indeterminate 1.5s ease-in-out infinite;
+        }
+        @keyframes progress-indeterminate {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(400%); }
+        }
+    </style>
+</head>
+<body class="bg-broadcast-bg text-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-broadcast-panel border-b border-broadcast-border px-6 py-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <h1 class="text-2xl font-bold text-white">GFX Sub Dashboard</h1>
+                <span class="px-3 py-1 bg-green-600/20 text-green-400 text-sm rounded-full">
+                    Phase 2 MVP
+                </span>
+            </div>
+
+            <div class="flex items-center space-x-6">
+                <!-- Render Queue Status -->
+                <div class="flex items-center space-x-3">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span class="text-sm text-gray-400">Render Queue:</span>
+                        <span class="text-sm font-medium text-white">2 Active</span>
+                        <span class="text-sm text-gray-500">/</span>
+                        <span class="text-sm text-gray-400">5 Queued</span>
+                    </div>
+                </div>
+
+                <!-- Output Folder -->
+                <div class="flex items-center space-x-2 px-3 py-2 bg-broadcast-bg rounded border border-broadcast-border">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                    </svg>
+                    <span class="text-xs text-gray-400">Output:</span>
+                    <span class="text-xs text-white font-mono">C:\Renders\2026-01-15</span>
+                </div>
+
+                <!-- WebSocket Status -->
+                <div class="flex items-center space-x-2">
+                    <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span class="text-xs text-gray-400">Main Dashboard Connected</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Tab Navigation -->
+    <nav class="bg-broadcast-panel border-b border-broadcast-border px-6">
+        <div class="flex space-x-1">
+            <button class="tab-active px-6 py-3 text-sm font-medium border-b-2 border-blue-500 text-blue-400">
+                Caption Selection
+            </button>
+            <button class="tab-inactive px-6 py-3 text-sm font-medium text-gray-400 hover:text-white transition-colors">
+                Render Queue
+            </button>
+            <button class="tab-inactive px-6 py-3 text-sm font-medium text-gray-400 hover:text-white transition-colors">
+                Output Viewer
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="p-6 grid grid-cols-12 gap-6 h-[calc(100vh-144px)]">
+        <!-- Left Panel: Composition Grid + Filter -->
+        <section class="col-span-4 flex flex-col space-y-4">
+            <!-- Category Filter -->
+            <div class="bg-broadcast-panel rounded-lg border border-broadcast-border p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-semibold text-white">Composition Library</h2>
+                    <span class="text-xs text-gray-400">26 Compositions</span>
+                </div>
+
+                <!-- Search -->
+                <div class="relative mb-3">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    <input type="text" placeholder="Search compositions..."
+                           class="w-full pl-10 pr-4 py-2 bg-broadcast-bg border border-broadcast-border rounded text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500">
+                </div>
+
+                <!-- Category Tabs -->
+                <div class="flex flex-wrap gap-2">
+                    <button class="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-full font-medium">
+                        All (26)
+                    </button>
+                    <button class="px-3 py-1.5 bg-broadcast-bg text-gray-400 text-xs rounded-full hover:bg-gray-700 transition-colors">
+                        chip_display (6)
+                    </button>
+                    <button class="px-3 py-1.5 bg-broadcast-bg text-gray-400 text-xs rounded-full hover:bg-gray-700 transition-colors">
+                        payout (3)
+                    </button>
+                    <button class="px-3 py-1.5 bg-broadcast-bg text-gray-400 text-xs rounded-full hover:bg-gray-700 transition-colors">
+                        event_info (4)
+                    </button>
+                    <button class="px-3 py-1.5 bg-broadcast-bg text-gray-400 text-xs rounded-full hover:bg-gray-700 transition-colors">
+                        player_info (4)
+                    </button>
+                    <button class="px-3 py-1.5 bg-broadcast-bg text-gray-400 text-xs rounded-full hover:bg-gray-700 transition-colors">
+                        schedule (1)
+                    </button>
+                    <button class="px-3 py-1.5 bg-broadcast-bg text-gray-400 text-xs rounded-full hover:bg-gray-700 transition-colors">
+                        staff (2)
+                    </button>
+                    <button class="px-3 py-1.5 bg-broadcast-bg text-gray-400 text-xs rounded-full hover:bg-gray-700 transition-colors">
+                        elimination (2)
+                    </button>
+                    <button class="px-3 py-1.5 bg-broadcast-bg text-gray-400 text-xs rounded-full hover:bg-gray-700 transition-colors">
+                        transition (2)
+                    </button>
+                    <button class="px-3 py-1.5 bg-broadcast-bg text-gray-400 text-xs rounded-full hover:bg-gray-700 transition-colors">
+                        other (2)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Composition Grid -->
+            <div class="flex-1 bg-broadcast-panel rounded-lg border border-broadcast-border overflow-hidden">
+                <div class="p-4 h-full overflow-y-auto scrollbar-thin">
+                    <div class="grid-comp">
+                        <!-- Composition Card - Selected -->
+                        <div class="bg-blue-600/20 border-2 border-blue-500 rounded-lg p-3 cursor-pointer transition-all hover:shadow-lg hover:shadow-blue-500/20">
+                            <div class="aspect-video bg-broadcast-bg rounded mb-2 flex items-center justify-center">
+                                <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-xs font-semibold text-white mb-1">_MAIN Mini Chip Count</h3>
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="px-2 py-0.5 bg-blue-600/30 text-blue-300 rounded">chip_display</span>
+                                <span class="text-gray-400">9 slots</span>
+                            </div>
+                        </div>
+
+                        <!-- Composition Card - Normal -->
+                        <div class="bg-broadcast-bg border border-broadcast-border rounded-lg p-3 cursor-pointer transition-all hover:border-blue-500">
+                            <div class="aspect-video bg-gray-800 rounded mb-2 flex items-center justify-center">
+                                <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-xs font-medium text-gray-300 mb-1">_SUB_Mini Chip Count</h3>
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="px-2 py-0.5 bg-gray-700 text-gray-300 rounded">chip_display</span>
+                                <span class="text-gray-500">9 slots</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-broadcast-bg border border-broadcast-border rounded-lg p-3 cursor-pointer transition-all hover:border-blue-500">
+                            <div class="aspect-video bg-gray-800 rounded mb-2 flex items-center justify-center">
+                                <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-xs font-medium text-gray-300 mb-1">Chips In Play x3</h3>
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="px-2 py-0.5 bg-gray-700 text-gray-300 rounded">chip_display</span>
+                                <span class="text-gray-500">3 slots</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-broadcast-bg border border-broadcast-border rounded-lg p-3 cursor-pointer transition-all hover:border-blue-500">
+                            <div class="aspect-video bg-gray-800 rounded mb-2 flex items-center justify-center">
+                                <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-xs font-medium text-gray-300 mb-1">Chips In Play x4</h3>
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="px-2 py-0.5 bg-gray-700 text-gray-300 rounded">chip_display</span>
+                                <span class="text-gray-500">4 slots</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-broadcast-bg border border-broadcast-border rounded-lg p-3 cursor-pointer transition-all hover:border-blue-500">
+                            <div class="aspect-video bg-gray-800 rounded mb-2 flex items-center justify-center">
+                                <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-xs font-medium text-gray-300 mb-1">Chip Comparison</h3>
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="px-2 py-0.5 bg-gray-700 text-gray-300 rounded">chip_display</span>
+                                <span class="text-gray-500">0 slots</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-broadcast-bg border border-broadcast-border rounded-lg p-3 cursor-pointer transition-all hover:border-blue-500">
+                            <div class="aspect-video bg-gray-800 rounded mb-2 flex items-center justify-center">
+                                <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-xs font-medium text-gray-300 mb-1">Chip Flow</h3>
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="px-2 py-0.5 bg-gray-700 text-gray-300 rounded">chip_display</span>
+                                <span class="text-gray-500">0 slots</span>
+                            </div>
+                        </div>
+
+                        <!-- Payout Category -->
+                        <div class="bg-broadcast-bg border border-broadcast-border rounded-lg p-3 cursor-pointer transition-all hover:border-blue-500">
+                            <div class="aspect-video bg-gray-800 rounded mb-2 flex items-center justify-center">
+                                <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-xs font-medium text-gray-300 mb-1">Payouts</h3>
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="px-2 py-0.5 bg-purple-600/30 text-purple-300 rounded">payout</span>
+                                <span class="text-gray-500">9 slots</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-broadcast-bg border border-broadcast-border rounded-lg p-3 cursor-pointer transition-all hover:border-blue-500">
+                            <div class="aspect-video bg-gray-800 rounded mb-2 flex items-center justify-center">
+                                <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-xs font-medium text-gray-300 mb-1">Payouts 등수 바꾸기 가능</h3>
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="px-2 py-0.5 bg-purple-600/30 text-purple-300 rounded">payout</span>
+                                <span class="text-gray-500">11 slots</span>
+                            </div>
+                        </div>
+
+                        <div class="bg-broadcast-bg border border-broadcast-border rounded-lg p-3 cursor-pointer transition-all hover:border-blue-500">
+                            <div class="aspect-video bg-gray-800 rounded mb-2 flex items-center justify-center">
+                                <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-xs font-medium text-gray-300 mb-1">_Mini Payout</h3>
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="px-2 py-0.5 bg-purple-600/30 text-purple-300 rounded">payout</span>
+                                <span class="text-gray-500">9 slots</span>
+                            </div>
+                        </div>
+
+                        <!-- Event Info Category -->
+                        <div class="bg-broadcast-bg border border-broadcast-border rounded-lg p-3 cursor-pointer transition-all hover:border-blue-500">
+                            <div class="aspect-video bg-gray-800 rounded mb-2 flex items-center justify-center">
+                                <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-xs font-medium text-gray-300 mb-1">Event Name Card</h3>
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="px-2 py-0.5 bg-green-600/30 text-green-300 rounded">event_info</span>
+                                <span class="text-gray-500">0 slots</span>
+                            </div>
+                        </div>
+
+                        <!-- Additional compositions placeholder -->
+                        <div class="bg-broadcast-bg border border-broadcast-border border-dashed rounded-lg p-3 flex items-center justify-center opacity-50">
+                            <span class="text-xs text-gray-500">+16 more</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Middle Panel: Slot Mapping -->
+        <section class="col-span-5 flex flex-col space-y-4">
+            <div class="bg-broadcast-panel rounded-lg border border-broadcast-border p-4">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-lg font-semibold text-white">Slot Mapping</h2>
+                        <p class="text-xs text-gray-400 mt-1">_MAIN Mini Chip Count - 9 slots</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <!-- Data Source Selector -->
+                        <select class="px-3 py-2 bg-broadcast-bg border border-broadcast-border rounded text-sm text-white focus:outline-none focus:border-blue-500">
+                            <option value="gfx">GFX JSON DB</option>
+                            <option value="wsop_plus">WSOP+ DB</option>
+                            <option value="manual">Manual DB</option>
+                            <option value="unified">Unified View</option>
+                        </select>
+                        <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded font-medium transition-colors">
+                            Save Mapping
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Field Mapping Table -->
+                <div class="overflow-y-auto scrollbar-thin" style="max-height: calc(100vh - 320px);">
+                    <table class="w-full text-sm">
+                        <thead class="sticky top-0 bg-broadcast-bg border-b border-broadcast-border">
+                            <tr class="text-left">
+                                <th class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase">Slot</th>
+                                <th class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase">Field Key</th>
+                                <th class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase">Source</th>
+                                <th class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase">Transform</th>
+                                <th class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase">Preview</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-broadcast-border">
+                            <!-- Slot 1 -->
+                            <tr class="hover:bg-broadcast-bg transition-colors">
+                                <td class="px-3 py-3">
+                                    <span class="inline-flex items-center justify-center w-6 h-6 bg-blue-600/20 text-blue-400 rounded-full text-xs font-bold">1</span>
+                                </td>
+                                <td class="px-3 py-3">
+                                    <div class="space-y-1">
+                                        <div class="text-white font-medium">name</div>
+                                        <div class="text-white font-medium">chips</div>
+                                        <div class="text-white font-medium">bbs</div>
+                                        <div class="text-white font-medium">rank</div>
+                                    </div>
+                                </td>
+                                <td class="px-3 py-3">
+                                    <div class="space-y-1">
+                                        <div class="text-xs text-gray-400">gfx_hand_players.player_name</div>
+                                        <div class="text-xs text-gray-400">gfx_hand_players.end_stack_amt</div>
+                                        <div class="text-xs text-gray-400">calculated (chips / bb)</div>
+                                        <div class="text-xs text-gray-400">ROW_NUMBER()</div>
+                                    </div>
+                                </td>
+                                <td class="px-3 py-3">
+                                    <div class="space-y-1">
+                                        <span class="px-2 py-0.5 bg-yellow-600/20 text-yellow-400 rounded text-xs">UPPER</span>
+                                        <span class="px-2 py-0.5 bg-green-600/20 text-green-400 rounded text-xs">format_chips</span>
+                                        <span class="px-2 py-0.5 bg-green-600/20 text-green-400 rounded text-xs">format_bbs</span>
+                                        <span class="px-2 py-0.5 bg-gray-600/20 text-gray-400 rounded text-xs">direct</span>
+                                    </div>
+                                </td>
+                                <td class="px-3 py-3">
+                                    <div class="space-y-1 font-mono text-xs">
+                                        <div class="text-white">PHIL IVEY</div>
+                                        <div class="text-green-400">2.4M</div>
+                                        <div class="text-blue-400">120 BB</div>
+                                        <div class="text-gray-400">1</div>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <!-- Slot 2 -->
+                            <tr class="hover:bg-broadcast-bg transition-colors">
+                                <td class="px-3 py-3">
+                                    <span class="inline-flex items-center justify-center w-6 h-6 bg-blue-600/20 text-blue-400 rounded-full text-xs font-bold">2</span>
+                                </td>
+                                <td class="px-3 py-3">
+                                    <div class="space-y-1">
+                                        <div class="text-white font-medium">name</div>
+                                        <div class="text-white font-medium">chips</div>
+                                        <div class="text-white font-medium">bbs</div>
+                                        <div class="text-white font-medium">rank</div>
+                                    </div>
+                                </td>
+                                <td class="px-3 py-3">
+                                    <div class="space-y-1">
+                                        <div class="text-xs text-gray-400">gfx_hand_players.player_name</div>
+                                        <div class="text-xs text-gray-400">gfx_hand_players.end_stack_amt</div>
+                                        <div class="text-xs text-gray-400">calculated (chips / bb)</div>
+                                        <div class="text-xs text-gray-400">ROW_NUMBER()</div>
+                                    </div>
+                                </td>
+                                <td class="px-3 py-3">
+                                    <div class="space-y-1">
+                                        <span class="px-2 py-0.5 bg-yellow-600/20 text-yellow-400 rounded text-xs">UPPER</span>
+                                        <span class="px-2 py-0.5 bg-green-600/20 text-green-400 rounded text-xs">format_chips</span>
+                                        <span class="px-2 py-0.5 bg-green-600/20 text-green-400 rounded text-xs">format_bbs</span>
+                                        <span class="px-2 py-0.5 bg-gray-600/20 text-gray-400 rounded text-xs">direct</span>
+                                    </div>
+                                </td>
+                                <td class="px-3 py-3">
+                                    <div class="space-y-1 font-mono text-xs">
+                                        <div class="text-white">DANIEL NEGREANU</div>
+                                        <div class="text-green-400">1.8M</div>
+                                        <div class="text-blue-400">90 BB</div>
+                                        <div class="text-gray-400">2</div>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <!-- Slot 3 -->
+                            <tr class="hover:bg-broadcast-bg transition-colors">
+                                <td class="px-3 py-3">
+                                    <span class="inline-flex items-center justify-center w-6 h-6 bg-blue-600/20 text-blue-400 rounded-full text-xs font-bold">3</span>
+                                </td>
+                                <td class="px-3 py-3">
+                                    <div class="space-y-1">
+                                        <div class="text-white font-medium">name</div>
+                                        <div class="text-white font-medium">chips</div>
+                                        <div class="text-white font-medium">bbs</div>
+                                        <div class="text-white font-medium">rank</div>
+                                    </div>
+                                </td>
+                                <td class="px-3 py-3">
+                                    <div class="space-y-1">
+                                        <div class="text-xs text-gray-400">gfx_hand_players.player_name</div>
+                                        <div class="text-xs text-gray-400">gfx_hand_players.end_stack_amt</div>
+                                        <div class="text-xs text-gray-400">calculated (chips / bb)</div>
+                                        <div class="text-xs text-gray-400">ROW_NUMBER()</div>
+                                    </div>
+                                </td>
+                                <td class="px-3 py-3">
+                                    <div class="space-y-1">
+                                        <span class="px-2 py-0.5 bg-yellow-600/20 text-yellow-400 rounded text-xs">UPPER</span>
+                                        <span class="px-2 py-0.5 bg-green-600/20 text-green-400 rounded text-xs">format_chips</span>
+                                        <span class="px-2 py-0.5 bg-green-600/20 text-green-400 rounded text-xs">format_bbs</span>
+                                        <span class="px-2 py-0.5 bg-gray-600/20 text-gray-400 rounded text-xs">direct</span>
+                                    </div>
+                                </td>
+                                <td class="px-3 py-3">
+                                    <div class="space-y-1 font-mono text-xs">
+                                        <div class="text-white">DOYLE BRUNSON</div>
+                                        <div class="text-green-400">1.5M</div>
+                                        <div class="text-blue-400">75 BB</div>
+                                        <div class="text-gray-400">3</div>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <!-- Slots 4-9 Collapsed -->
+                            <tr class="bg-broadcast-bg/50">
+                                <td colspan="5" class="px-3 py-2 text-center">
+                                    <button class="text-xs text-blue-400 hover:text-blue-300 transition-colors">
+                                        Show 6 more slots (4-9)
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Panel: Data Preview -->
+        <section class="col-span-3 flex flex-col space-y-4">
+            <!-- Data Preview Panel -->
+            <div class="bg-broadcast-panel rounded-lg border border-broadcast-border p-4 flex-1 flex flex-col">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-white">Live Data Preview</h2>
+                    <button class="px-3 py-1.5 bg-broadcast-bg border border-broadcast-border rounded text-xs text-gray-400 hover:text-white hover:border-blue-500 transition-colors">
+                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Refresh
+                    </button>
+                </div>
+
+                <!-- Session Info -->
+                <div class="mb-4 p-3 bg-broadcast-bg rounded border border-broadcast-border">
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                            <span class="text-gray-400">Session:</span>
+                            <span class="ml-2 text-white font-medium">2026-01-15_Cash_01</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-400">Hand #:</span>
+                            <span class="ml-2 text-white font-medium">142</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-400">Blinds:</span>
+                            <span class="ml-2 text-white font-medium">10K/20K</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-400">Players:</span>
+                            <span class="ml-2 text-white font-medium">9</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Composition Preview -->
+                <div class="mb-4">
+                    <h3 class="text-sm font-semibold text-gray-400 mb-2">Composition Preview</h3>
+                    <div class="aspect-video bg-broadcast-bg rounded border border-broadcast-border flex items-center justify-center">
+                        <div class="text-center">
+                            <svg class="w-12 h-12 text-gray-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
+                            <p class="text-xs text-gray-500">AEP Preview Not Available</p>
+                            <p class="text-xs text-gray-600 mt-1">Rendering required</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- JSON Data Preview -->
+                <div class="flex-1 flex flex-col">
+                    <h3 class="text-sm font-semibold text-gray-400 mb-2">render_gfx_data_v3 JSON</h3>
+                    <div class="flex-1 bg-broadcast-bg rounded border border-broadcast-border overflow-y-auto scrollbar-thin">
+                        <pre class="text-xs text-gray-300 p-3 font-mono"><code>{
+  "composition_name": "_MAIN Mini Chip Count",
+  "hand_id": "uuid-142",
+  "session_id": "2026-01-15_Cash_01",
+  "hand_num": 142,
+  "slots": [
+    {
+      "slot_index": 1,
+      "name": "PHIL IVEY",
+      "chips": "2.4M",
+      "bbs": "120 BB",
+      "rank": "1",
+      "flag": "US"
+    },
+    {
+      "slot_index": 2,
+      "name": "DANIEL NEGREANU",
+      "chips": "1.8M",
+      "bbs": "90 BB",
+      "rank": "2",
+      "flag": "CA"
+    },
+    {
+      "slot_index": 3,
+      "name": "DOYLE BRUNSON",
+      "chips": "1.5M",
+      "bbs": "75 BB",
+      "rank": "3",
+      "flag": "US"
+    }
+  ],
+  "metadata": {
+    "blinds": "10K/20K",
+    "total_slots": 9,
+    "mapped_slots": 3
+  }
+}</code></pre>
+                    </div>
+                </div>
+
+                <!-- Render Action -->
+                <div class="mt-4 pt-4 border-t border-broadcast-border">
+                    <button class="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded transition-colors flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Add to Render Queue
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Render Queue Tab (Hidden by default) -->
+    <div class="hidden p-6">
+        <div class="grid grid-cols-12 gap-6">
+            <!-- Active Jobs -->
+            <section class="col-span-6">
+                <div class="bg-broadcast-panel rounded-lg border border-broadcast-border p-4">
+                    <h2 class="text-lg font-semibold text-white mb-4">Active Renders (2)</h2>
+
+                    <!-- Job Card 1 -->
+                    <div class="bg-broadcast-bg rounded border border-green-500/50 p-4 mb-3">
+                        <div class="flex items-start justify-between mb-3">
+                            <div>
+                                <h3 class="text-sm font-semibold text-white">_MAIN Mini Chip Count</h3>
+                                <p class="text-xs text-gray-400 mt-1">Hand #142 - Session: 2026-01-15_Cash_01</p>
+                            </div>
+                            <span class="px-2 py-1 bg-green-600/20 text-green-400 text-xs rounded">Rendering</span>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div class="mb-3">
+                            <div class="flex items-center justify-between text-xs text-gray-400 mb-1">
+                                <span>Progress</span>
+                                <span>68%</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
+                                <div class="bg-green-500 h-2 rounded-full transition-all duration-300" style="width: 68%"></div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-gray-400">Estimated: 42s remaining</span>
+                            <button class="text-red-400 hover:text-red-300">Cancel</button>
+                        </div>
+                    </div>
+
+                    <!-- Job Card 2 -->
+                    <div class="bg-broadcast-bg rounded border border-green-500/50 p-4">
+                        <div class="flex items-start justify-between mb-3">
+                            <div>
+                                <h3 class="text-sm font-semibold text-white">Payouts</h3>
+                                <p class="text-xs text-gray-400 mt-1">Event: WSOP Main Event 2026</p>
+                            </div>
+                            <span class="px-2 py-1 bg-green-600/20 text-green-400 text-xs rounded">Rendering</span>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="flex items-center justify-between text-xs text-gray-400 mb-1">
+                                <span>Progress</span>
+                                <span>24%</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
+                                <div class="bg-green-500 h-2 rounded-full transition-all duration-300" style="width: 24%"></div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-gray-400">Estimated: 1m 58s remaining</span>
+                            <button class="text-red-400 hover:text-red-300">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Queued Jobs -->
+            <section class="col-span-6">
+                <div class="bg-broadcast-panel rounded-lg border border-broadcast-border p-4">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-semibold text-white">Queued (5)</h2>
+                        <button class="px-3 py-1.5 bg-broadcast-bg border border-broadcast-border rounded text-xs text-gray-400 hover:text-white hover:border-blue-500">
+                            Clear All
+                        </button>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="bg-broadcast-bg rounded border border-broadcast-border p-3 flex items-center justify-between">
+                            <div class="flex-1">
+                                <h3 class="text-sm font-medium text-white">Chips In Play x3</h3>
+                                <p class="text-xs text-gray-400 mt-1">Hand #143</p>
+                            </div>
+                            <span class="px-2 py-1 bg-yellow-600/20 text-yellow-400 text-xs rounded ml-3">Queued</span>
+                        </div>
+
+                        <div class="bg-broadcast-bg rounded border border-broadcast-border p-3 flex items-center justify-between opacity-75">
+                            <div class="flex-1">
+                                <h3 class="text-sm font-medium text-white">Event Name Card</h3>
+                                <p class="text-xs text-gray-400 mt-1">WSOP Main Event</p>
+                            </div>
+                            <span class="px-2 py-1 bg-gray-600/20 text-gray-400 text-xs rounded ml-3">Pending</span>
+                        </div>
+
+                        <div class="text-center py-3 text-xs text-gray-500">
+                            +3 more jobs
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Completed Jobs -->
+            <section class="col-span-12">
+                <div class="bg-broadcast-panel rounded-lg border border-broadcast-border p-4">
+                    <h2 class="text-lg font-semibold text-white mb-4">Completed (12)</h2>
+
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="bg-broadcast-bg rounded border border-broadcast-border p-3">
+                            <div class="flex items-start justify-between mb-2">
+                                <h3 class="text-sm font-medium text-white">_SUB_Mini Chip Count</h3>
+                                <span class="px-2 py-0.5 bg-green-600/20 text-green-400 text-xs rounded">Completed</span>
+                            </div>
+                            <p class="text-xs text-gray-400 mb-3">Hand #141 - 32s</p>
+                            <div class="flex items-center space-x-2">
+                                <button class="flex-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded">
+                                    View
+                                </button>
+                                <button class="px-3 py-1.5 bg-broadcast-panel border border-broadcast-border hover:border-blue-500 text-gray-400 hover:text-white text-xs rounded">
+                                    Download
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-broadcast-bg rounded border border-broadcast-border p-3 opacity-75">
+                            <div class="flex items-start justify-between mb-2">
+                                <h3 class="text-sm font-medium text-white">Chip Comparison</h3>
+                                <span class="px-2 py-0.5 bg-green-600/20 text-green-400 text-xs rounded">Completed</span>
+                            </div>
+                            <p class="text-xs text-gray-400 mb-3">Hand #140 - 28s</p>
+                            <div class="flex items-center space-x-2">
+                                <button class="flex-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded">
+                                    View
+                                </button>
+                                <button class="px-3 py-1.5 bg-broadcast-panel border border-broadcast-border hover:border-blue-500 text-gray-400 hover:text-white text-xs rounded">
+                                    Download
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-broadcast-bg rounded border border-red-500/50 p-3 opacity-75">
+                            <div class="flex items-start justify-between mb-2">
+                                <h3 class="text-sm font-medium text-white">Chip Flow</h3>
+                                <span class="px-2 py-0.5 bg-red-600/20 text-red-400 text-xs rounded">Failed</span>
+                            </div>
+                            <p class="text-xs text-red-400 mb-3">Error: Missing data</p>
+                            <div class="flex items-center space-x-2">
+                                <button class="flex-1 px-3 py-1.5 bg-yellow-600 hover:bg-yellow-700 text-white text-xs rounded">
+                                    Retry
+                                </button>
+                                <button class="px-3 py-1.5 bg-broadcast-panel border border-broadcast-border hover:border-blue-500 text-gray-400 hover:text-white text-xs rounded">
+                                    Logs
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching logic (for demonstration)
+        document.querySelectorAll('nav button').forEach((tab, index) => {
+            tab.addEventListener('click', () => {
+                // Remove active state from all tabs
+                document.querySelectorAll('nav button').forEach(t => {
+                    t.classList.remove('tab-active', 'border-blue-500', 'text-blue-400');
+                    t.classList.add('tab-inactive', 'text-gray-400');
+                });
+
+                // Add active state to clicked tab
+                tab.classList.remove('tab-inactive', 'text-gray-400');
+                tab.classList.add('tab-active', 'border-blue-500', 'text-blue-400');
+
+                // Simple demonstration - would toggle different content sections
+                console.log(`Switched to tab: ${tab.textContent.trim()}`);
+            });
+        });
+
+        // Simulate real-time progress updates
+        setInterval(() => {
+            const progressBars = document.querySelectorAll('.bg-green-500');
+            progressBars.forEach(bar => {
+                const currentWidth = parseInt(bar.style.width || '0');
+                if (currentWidth < 100) {
+                    bar.style.width = (currentWidth + Math.random() * 5) + '%';
+                }
+            });
+        }, 1000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+task_id: task_003
+agent: frontend-dev
+status: completed
+started_at: "2026-01-15T12:40:00+09:00"
+completed_at: "2026-01-15T12:52:00+09:00"
+output:
+  summary: |
+    GFX Main Dashboard HTML 목업 생성 완료.
+    1920x1080 기준 반응형 레이아웃, Tailwind CSS 다크 테마 적용.
+    핸드 브라우저, 플레이어 칩 그리드(9명), 큐시트 편집기 UI 구현.
+
+  html_file: "docs/mockups/main-dashboard.html"
+
+  features_implemented: |
+    1. Layout Structure
+       - 좌측 사이드바 (w-64): 네비게이션 메뉴 + 세션 통계
+       - 상단 헤더: 방송 상태(LIVE) + 세션 선택 드롭다운
+       - 탭 네비게이션: Hand Browser, Cuesheet Editor, Player Grid, Realtime Monitor
+
+    2. Hand Browser Section
+       - 가로 스크롤 핸드 목록 (w-80 카드)
+       - 보드 카드 표시 (5장, Flop/Turn/River 구분)
+       - 핸드 상태 뱃지 (Active/Completed)
+       - Pot 금액, 참여 플레이어 수, 스테이지 정보
+
+    3. Player Grid Section
+       - 3x3 그리드 레이아웃 (9명)
+       - 플레이어 카드: 아바타, 이름, 좌석 위치, 상태
+       - 칩 카운트 표시 (숫자 + BBs)
+       - 칩 증감 표시 (+/- 색상 구분)
+       - 칩 분포 진행바 (색상: 녹색/주황/빨강)
+
+    4. Cuesheet Preview Section
+       - 큐 아이템 목록 (3개 샘플)
+       - 렌더링 상태 뱃지 (Rendering 78%, Queued)
+       - 템플릿 정보 표시
+       - Edit 버튼, Add Cue Item 버튼
+
+    5. UI/UX Features
+       - 다크 테마 (broadcast-bg: #0f1419)
+       - LIVE 상태 표시 (녹색 점멸 애니메이션)
+       - 호버 효과 (border-color 전환)
+       - 포커 카드 렌더링 (♠♥♦♣ 유니코드)
+       - 반응형 그리드 (grid-cols-3)
+
+    6. Tailwind CSS Config
+       - Custom 색상: broadcast.bg/card/border/accent/success/warning/danger
+       - 다크 모드: class='dark'
+       - CDN 방식 (빠른 프로토타입)
+
+    7. Accessibility
+       - Semantic HTML (header, nav, main, section)
+       - 상태 뱃지 색상 대비 (4.5:1 이상)
+       - 버튼 호버 상태 명확
+
+    8. 미구현 (차후 React 구현 시)
+       - 실시간 데이터 연동 (Supabase Realtime)
+       - 드래그 앤 드롭 (Cuesheet 순서 변경)
+       - 모달 (플레이어 상세, 큐 아이템 편집)
+       - WebSocket 연결 상태 표시
+       - 타임라인 뷰 (Cuesheet)
+
+errors: null

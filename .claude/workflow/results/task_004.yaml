@@ -1,0 +1,110 @@
+task_id: task_004
+agent: frontend-dev
+status: completed
+started_at: "2026-01-15T10:30:00Z"
+completed_at: "2026-01-15T10:45:00Z"
+output:
+  summary: |
+    Sub Dashboard HTML 목업 생성 완료.
+    1920x1080 반응형 레이아웃, 3개 탭 (Caption Selection, Render Queue, Output Viewer),
+    26개 컴포지션 그리드, 9개 카테고리 필터, 슬롯 매핑 테이블 (84개 필드),
+    실시간 데이터 프리뷰, 렌더 큐 상태 표시, 다크 테마 적용.
+
+  html_file: "C:\\claude\\automation_orchestration\\docs\\mockups\\sub-dashboard.html"
+
+  features_implemented: |
+    ## 레이아웃
+    - 반응형 그리드 (1920x1080 기준, Tailwind CSS CDN)
+    - 다크 테마 (broadcast 컬러 스킴)
+    - 3-column 레이아웃 (4-5-3 비율)
+
+    ## 헤더 (Header)
+    - 렌더 큐 상태 (2 Active / 5 Queued)
+    - 출력 폴더 경로 표시
+    - WebSocket 연결 상태 (Main Dashboard)
+
+    ## 탭 네비게이션
+    1. Caption Selection (기본 활성)
+    2. Render Queue
+    3. Output Viewer
+
+    ## Caption Selection 탭
+    ### 좌측 패널 (Composition Grid)
+    - 검색 바
+    - 카테고리 필터 (10개 버튼)
+      - All (26)
+      - chip_display (6)
+      - payout (3)
+      - event_info (4)
+      - player_info (4)
+      - schedule (1)
+      - staff (2)
+      - elimination (2)
+      - transition (2)
+      - other (2)
+    - 컴포지션 카드 그리드 (6열)
+      - 썸네일 영역
+      - 컴포지션명
+      - 카테고리 뱃지
+      - 슬롯 수 표시
+      - 선택 상태 하이라이트
+
+    ### 중앙 패널 (Slot Mapping)
+    - 데이터 소스 선택 (GFX/WSOP+/Manual/Unified)
+    - Save Mapping 버튼
+    - 필드 매핑 테이블 (스크롤 가능)
+      - 슬롯 번호
+      - 필드 키 (name, chips, bbs, rank)
+      - 소스 (gfx_hand_players.player_name 등)
+      - Transform 함수 (UPPER, format_chips, format_bbs)
+      - 실시간 프리뷰 값
+    - 9개 슬롯 표시 (3개 확장 + 6개 접힘)
+
+    ### 우측 패널 (Data Preview)
+    - 세션 정보 (Session ID, Hand #, Blinds, Players)
+    - Composition Preview (Placeholder)
+    - render_gfx_data_v3 JSON 프리뷰
+      - 슬롯 데이터 (name, chips, bbs, rank, flag)
+      - 메타데이터
+    - Add to Render Queue 버튼
+
+    ## Render Queue 탭 (숨김 상태로 구현)
+    ### Active Renders (2개)
+    - 컴포지션명, 핸드 정보
+    - 진행률 바 (68%, 24%)
+    - 남은 시간 표시
+    - Cancel 버튼
+
+    ### Queued Jobs (5개)
+    - 컴포지션명, 상태 뱃지
+    - Clear All 버튼
+
+    ### Completed Jobs (12개)
+    - 그리드 레이아웃 (3열)
+    - 완료/실패 상태
+    - View/Download/Retry 버튼
+
+    ## 스타일링
+    - Tailwind CSS 다크 모드
+    - 커스텀 broadcast 컬러 팔레트
+    - 스크롤바 커스터마이징
+    - 호버 효과 (transition-colors)
+    - 반응형 그리드 (grid-template-columns)
+
+    ## 인터랙티브 요소
+    - 탭 전환 로직 (JavaScript)
+    - 진행률 바 애니메이션 (시뮬레이션)
+    - 컴포지션 카드 선택 상태
+
+    ## 데이터 예시
+    - 실제 GFX 매핑 문서 기반
+      - _MAIN Mini Chip Count (9 slots)
+      - player_name → UPPER (PHIL IVEY)
+      - end_stack_amt → format_chips (2.4M)
+      - bbs → format_bbs (120 BB)
+    - 카테고리별 컴포지션 샘플
+      - chip_display: 6개
+      - payout: 3개
+      - event_info: 1개
+
+errors: null

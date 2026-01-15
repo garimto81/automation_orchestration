@@ -1,0 +1,85 @@
+task_id: task_015
+title: Hand Browser 컴포넌트 구현
+status: completed
+created_at: 2026-01-15T14:00:00Z
+completed_at: 2026-01-15T14:15:00Z
+
+context:
+  project: automation_dashboard
+  issue: "#97"
+  component: hand-browser
+
+summary: |
+  Hand Browser 컴포넌트 6개 파일 생성 완료
+  - React 18 + TypeScript + Tailwind CSS
+  - Zustand 스토어 연동 (sessionStore, realtimeStore)
+  - Supabase 스키마 기반 타입 정의 활용
+
+files_created:
+  - path: C:\claude\automation_dashboard\src\components\features\hand-browser\BoardCards.tsx
+    description: 보드 카드 5장 표시 (Flop/Turn/River), 슈트별 색상 처리
+    lines: 73
+
+  - path: C:\claude\automation_dashboard\src\components\features\hand-browser\HandCard.tsx
+    description: 개별 핸드 카드 (번호, 팟, 플레이어 수, 상태 뱃지)
+    lines: 117
+
+  - path: C:\claude\automation_dashboard\src\components\features\hand-browser\HandList.tsx
+    description: 가로 스크롤 핸드 목록 컨테이너
+    lines: 57
+
+  - path: C:\claude\automation_dashboard\src\components\features\hand-browser\HandDetail.tsx
+    description: 선택된 핸드 상세 뷰 (보드, 플레이어, 액션 타임라인)
+    lines: 188
+
+  - path: C:\claude\automation_dashboard\src\components\features\hand-browser\HandBrowser.tsx
+    description: 메인 컨테이너 (스토어 연동, 핸드 로딩, 선택 관리)
+    lines: 181
+
+  - path: C:\claude\automation_dashboard\src\components\features\hand-browser\index.ts
+    description: Export 모듈 (5개 컴포넌트)
+    lines: 10
+
+technical_details:
+  features:
+    - sessionStore와 realtimeStore Zustand 연동
+    - 가로 스크롤 핸드 목록 (overflow-x-auto)
+    - Active/Completed 상태 뱃지
+    - 카드 슈트별 색상 (♠♣ 검정, ♥♦ 빨강)
+    - 액션 타임라인 (sequence 정렬)
+    - data-testid 속성 추가 (테스트 준비)
+
+  types_used:
+    - Hand (hand.ts)
+    - HandPlayer (hand.ts)
+    - HandAction (hand.ts)
+    - BoardCards (hand.ts)
+    - SessionState (session.ts)
+    - RealtimeState (realtime.ts)
+
+  styling:
+    - Tailwind CSS 다크 테마
+    - broadcast-* 커스텀 색상 변수
+    - 반응형 레이아웃
+    - 호버 효과 및 트랜지션
+
+implementation_notes:
+  - 현재 목업 데이터 사용 (TODO: Supabase 연동)
+  - currentHandId 변경 시 자동 선택
+  - 빈 상태 UI 처리 (세션 없음, 핸드 없음)
+  - 카드 파싱 로직 (parseCard 함수)
+  - 금액 포맷팅 (formatPot, formatChips)
+
+next_steps:
+  - Supabase 클라이언트 연동 (json.hands, json.hand_players, json.hand_actions)
+  - Realtime 이벤트 구독 (hand_updated)
+  - 검색 및 필터 기능 구현
+  - 테스트 코드 작성
+
+validation:
+  - ✅ 6개 파일 생성 완료
+  - ✅ TypeScript 타입 정의 활용
+  - ✅ Zustand 스토어 연동
+  - ✅ Tailwind CSS 다크 테마
+  - ✅ data-testid 속성 추가
+  - ✅ 목업 HTML 디자인 반영

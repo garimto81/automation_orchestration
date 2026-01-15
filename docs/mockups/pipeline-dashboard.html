@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WSOP Broadcast Automation - 6-Module Pipeline</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #2a2a2a;
+            --border-color: #3a3a3a;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --text-muted: #666666;
+            --accent-green: #00ff88;
+            --accent-yellow: #ffcc00;
+            --accent-blue: #0088ff;
+            --accent-red: #ff4444;
+        }
+
+        body {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .zoom-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .zoom-btn {
+            width: 32px;
+            height: 32px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .zoom-btn:hover {
+            background: var(--border-color);
+        }
+
+        .zoom-level {
+            font-size: 12px;
+            color: var(--text-secondary);
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .status-indicator {
+            display: flex;
+            gap: 16px;
+            font-size: 11px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-dot.completed { background: var(--accent-green); }
+        .status-dot.in-progress { background: var(--accent-yellow); }
+        .status-dot.pending { background: var(--text-muted); }
+
+        /* Canvas Container */
+        .canvas-container {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            cursor: grab;
+        }
+
+        .canvas-container:active {
+            cursor: grabbing;
+        }
+
+        .canvas {
+            position: absolute;
+            transform-origin: center center;
+            transition: transform 0.3s ease;
+            width: 2400px;
+            height: 2000px;
+            left: 50%;
+            top: 50%;
+            margin-left: -1200px;
+            margin-top: -1000px;
+        }
+
+        /* Module Nodes */
+        .module-node {
+            position: absolute;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            min-width: 320px;
+            transition: all 0.2s ease;
+        }
+
+        .module-node:hover {
+            border-color: var(--text-secondary);
+            box-shadow: 0 0 20px rgba(255,255,255,0.05);
+        }
+
+        .module-node.completed {
+            border-color: var(--accent-green);
+        }
+
+        .module-node.in-progress {
+            border-color: var(--accent-yellow);
+        }
+
+        .module-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .module-number {
+            font-size: 10px;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+        }
+
+        .module-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .module-status {
+            font-size: 10px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: var(--bg-tertiary);
+        }
+
+        .module-status.completed {
+            background: rgba(0, 255, 136, 0.2);
+            color: var(--accent-green);
+        }
+
+        .module-status.in-progress {
+            background: rgba(255, 204, 0, 0.2);
+            color: var(--accent-yellow);
+        }
+
+        .module-body {
+            padding: 16px;
+        }
+
+        .module-tech {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .module-description {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        .module-tables {
+            margin-top: 12px;
+        }
+
+        .tables-header {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        .table-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .table-tag {
+            font-size: 10px;
+            padding: 2px 6px;
+            background: var(--bg-tertiary);
+            border-radius: 2px;
+            color: var(--text-secondary);
+        }
+
+        .table-tag.write {
+            border-left: 2px solid var(--accent-green);
+        }
+
+        .table-tag.read {
+            border-left: 2px solid var(--accent-blue);
+        }
+
+        /* Connection Lines */
+        .connections {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .connection-line {
+            stroke: var(--border-color);
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .connection-line.active {
+            stroke: var(--accent-blue);
+            stroke-dasharray: 8 4;
+            animation: flow 1s linear infinite;
+        }
+
+        @keyframes flow {
+            from { stroke-dashoffset: 12; }
+            to { stroke-dashoffset: 0; }
+        }
+
+        .connection-arrow {
+            fill: var(--border-color);
+        }
+
+        .connection-label {
+            font-size: 10px;
+            fill: var(--text-muted);
+        }
+
+        /* Supabase Central Hub */
+        .supabase-hub {
+            position: absolute;
+            left: 950px;
+            top: 650px;
+            width: 500px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--accent-blue);
+            border-radius: 12px;
+        }
+
+        .hub-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .hub-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--accent-blue);
+        }
+
+        .hub-subtitle {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .schema-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            padding: 16px;
+        }
+
+        .schema-box {
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            padding: 12px;
+        }
+
+        .schema-name {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .schema-tables {
+            font-size: 10px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        /* Output Section */
+        .output-section {
+            position: absolute;
+            left: 950px;
+            top: 1500px;
+            width: 500px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--text-muted);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .output-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .output-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .output-item {
+            font-size: 11px;
+            padding: 8px 12px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        .output-arrow {
+            color: var(--text-muted);
+        }
+
+        /* Legend */
+        .legend {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            z-index: 100;
+        }
+
+        .legend-title {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+        }
+
+        .legend-items {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        /* Mini Map */
+        .minimap {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 200px;
+            height: 150px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            z-index: 100;
+            overflow: hidden;
+        }
+
+        .minimap-content {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .minimap-viewport {
+            position: absolute;
+            border: 1px solid var(--accent-blue);
+            background: rgba(0, 136, 255, 0.1);
+        }
+
+        .minimap-node {
+            position: absolute;
+            background: var(--text-muted);
+            border-radius: 1px;
+        }
+
+        .minimap-node.completed { background: var(--accent-green); }
+        .minimap-node.in-progress { background: var(--accent-yellow); }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div>
+            <h1>WSOP BROADCAST AUTOMATION SYSTEM v2.0</h1>
+        </div>
+        <div class="header-controls">
+            <div class="status-indicator">
+                <div class="status-item">
+                    <div class="status-dot completed"></div>
+                    <span>Completed: 1</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot in-progress"></div>
+                    <span>In Progress: 5</span>
+                </div>
+            </div>
+            <div class="zoom-controls">
+                <button class="zoom-btn" onclick="zoomOut()">-</button>
+                <span class="zoom-level" id="zoomLevel">100%</span>
+                <button class="zoom-btn" onclick="zoomIn()">+</button>
+                <button class="zoom-btn" onclick="resetZoom()">⟲</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Canvas -->
+    <div class="canvas-container" id="canvasContainer">
+        <div class="canvas" id="canvas">
+
+            <!-- SVG Connections -->
+            <svg class="connections" viewBox="0 0 2400 2000">
+                <!-- Module 1 to NAS -->
+                <path class="connection-line" d="M 560 280 L 560 380 L 1200 380 L 1200 480" />
+                <text class="connection-label" x="880" y="370">JSON Files</text>
+
+                <!-- NAS to Module 2 -->
+                <path class="connection-line active" d="M 1200 540 L 1200 600" />
+                <text class="connection-label" x="1210" y="575">Watchdog</text>
+
+                <!-- Module 2 to Supabase -->
+                <path class="connection-line active" d="M 560 780 L 560 850 L 950 850" />
+                <text class="connection-label" x="750" y="840">INSERT</text>
+
+                <!-- Supabase to Module 4 -->
+                <path class="connection-line" d="M 950 750 L 560 750 L 560 1100" />
+                <text class="connection-label" x="680" y="740">Realtime</text>
+
+                <!-- Supabase to Module 5 -->
+                <path class="connection-line" d="M 1450 750 L 1840 750 L 1840 1100" />
+                <text class="connection-label" x="1600" y="740">READ</text>
+
+                <!-- Module 4 to Module 5 -->
+                <path class="connection-line active" d="M 720 1250 L 1680 1250" />
+                <text class="connection-label" x="1150" y="1240">WebSocket: cue_item_selected</text>
+
+                <!-- Module 5 to Supabase -->
+                <path class="connection-line" d="M 1840 1100 L 1840 950 L 1450 950" />
+                <text class="connection-label" x="1600" y="940">render_jobs</text>
+
+                <!-- Supabase to Module 6 -->
+                <path class="connection-line active" d="M 1200 1000 L 1200 1450" />
+                <text class="connection-label" x="1210" y="1230">Polling</text>
+
+                <!-- Module 6 to Output -->
+                <path class="connection-line" d="M 1200 1680 L 1200 1730" />
+            </svg>
+
+            <!-- Module 1: GFX Simulator -->
+            <div class="module-node completed" style="left: 240px; top: 80px; width: 640px;">
+                <div class="module-header">
+                    <div>
+                        <div class="module-number">MODULE 1</div>
+                        <div class="module-title">GFX Simulator</div>
+                    </div>
+                    <span class="module-status completed">COMPLETED</span>
+                </div>
+                <div class="module-body">
+                    <div class="module-tech">Python 3.11+ | Streamlit | automation_feature_table</div>
+                    <div class="module-description">
+                        GFX 테스트용 시뮬레이터 앱<br>
+                        - Feature Table GUI<br>
+                        - JSON 생성/테스트<br>
+                        - NAS로 JSON 출력
+                    </div>
+                </div>
+            </div>
+
+            <!-- NAS Box -->
+            <div style="position: absolute; left: 1050px; top: 480px; width: 300px; background: var(--bg-tertiary); border: 1px dashed var(--border-color); border-radius: 4px; padding: 12px; text-align: center;">
+                <div style="font-size: 12px; color: var(--text-secondary);">NAS (SMB)</div>
+                <div style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">GFX JSON 파일 공유</div>
+            </div>
+
+            <!-- Module 2: GFX-NAS-Supabase Sync -->
+            <div class="module-node in-progress" style="left: 240px; top: 600px; width: 640px;">
+                <div class="module-header">
+                    <div>
+                        <div class="module-number">MODULE 2</div>
+                        <div class="module-title">GFX-NAS-Supabase Sync</div>
+                    </div>
+                    <span class="module-status in-progress">IN PROGRESS</span>
+                </div>
+                <div class="module-body">
+                    <div class="module-tech">Python 3.11+ | Watchdog + asyncio | supabase-py</div>
+                    <div class="module-description">
+                        NAS의 GFX 데이터 → Supabase 전송<br>
+                        - 파일 감시 (Watchdog)<br>
+                        - JSON 파싱 + Pydantic 검증<br>
+                        - Supabase INSERT + Realtime Broadcast
+                    </div>
+                    <div class="module-tables">
+                        <div class="tables-header">WRITE TABLES</div>
+                        <div class="table-list">
+                            <span class="table-tag write">json.gfx_sessions</span>
+                            <span class="table-tag write">json.hands</span>
+                            <span class="table-tag write">json.hand_players</span>
+                            <span class="table-tag write">json.hand_actions</span>
+                            <span class="table-tag write">json.hand_cards</span>
+                            <span class="table-tag write">json.hand_results</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Module 3: Supabase DB (Central Hub) -->
+            <div class="supabase-hub">
+                <div class="hub-header">
+                    <div class="module-number">MODULE 3</div>
+                    <div class="hub-title">Supabase DB Schema</div>
+                    <div class="hub-subtitle">PostgreSQL 15 + Realtime + RLS | automation_hub</div>
+                </div>
+                <div class="schema-grid">
+                    <div class="schema-box">
+                        <div class="schema-name">json 스키마</div>
+                        <div class="schema-tables">
+                            gfx_sessions<br>
+                            hands<br>
+                            hand_players<br>
+                            hand_actions<br>
+                            hand_cards<br>
+                            hand_results
+                        </div>
+                    </div>
+                    <div class="schema-box">
+                        <div class="schema-name">wsop_plus 스키마</div>
+                        <div class="schema-tables">
+                            tournaments<br>
+                            blind_levels<br>
+                            payouts<br>
+                            player_instances<br>
+                            schedules
+                        </div>
+                    </div>
+                    <div class="schema-box">
+                        <div class="schema-name">manual 스키마</div>
+                        <div class="schema-tables">
+                            players_master<br>
+                            player_profiles<br>
+                            commentators<br>
+                            venues<br>
+                            events<br>
+                            feature_tables
+                        </div>
+                    </div>
+                    <div class="schema-box">
+                        <div class="schema-name">ae 스키마</div>
+                        <div class="schema-tables">
+                            templates<br>
+                            compositions<br>
+                            composition_layers<br>
+                            layer_data_mappings<br>
+                            render_jobs<br>
+                            render_outputs
+                        </div>
+                    </div>
+                </div>
+                <div style="padding: 12px 16px; border-top: 1px solid var(--border-color);">
+                    <div style="font-size: 10px; color: var(--text-muted); margin-bottom: 8px;">UNIFIED VIEWS</div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <span class="table-tag">unified_players</span>
+                        <span class="table-tag">unified_events</span>
+                        <span class="table-tag">unified_chip_data</span>
+                    </div>
+                    <div style="font-size: 10px; color: var(--text-muted); margin-top: 8px;">
+                        우선순위: 1.Manual > 2.WSOP+ > 3.GFX
+                    </div>
+                </div>
+            </div>
+
+            <!-- Module 4: Main Dashboard -->
+            <div class="module-node in-progress" style="left: 240px; top: 1100px; width: 480px;">
+                <div class="module-header">
+                    <div>
+                        <div class="module-number">MODULE 4</div>
+                        <div class="module-title">Main Dashboard</div>
+                    </div>
+                    <span class="module-status in-progress">IN PROGRESS</span>
+                </div>
+                <div class="module-body">
+                    <div class="module-tech">TypeScript | React 18 + Next.js 14 | Vercel</div>
+                    <div class="module-description">
+                        핸드 수집, 배치, 연출 결정 (구 큐시트)<br>
+                        - 핸드 브라우저 (A/B/C 등급)<br>
+                        - 큐시트 편집 (드래그&드롭)<br>
+                        - 실시간 테이블 모니터<br><br>
+                        <strong>사용자:</strong> 연출자/PD
+                    </div>
+                    <div class="module-tables">
+                        <div class="tables-header">READ</div>
+                        <div class="table-list">
+                            <span class="table-tag read">json.*</span>
+                            <span class="table-tag read">unified_*</span>
+                            <span class="table-tag read">wsop_plus.*</span>
+                        </div>
+                    </div>
+                    <div class="module-tables" style="margin-top: 8px;">
+                        <div class="tables-header">WRITE</div>
+                        <div class="table-list">
+                            <span class="table-tag write">cue_sheets</span>
+                            <span class="table-tag write">cue_items</span>
+                            <span class="table-tag write">manual.*</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Module 5: Sub Dashboard -->
+            <div class="module-node in-progress" style="left: 1680px; top: 1100px; width: 480px;">
+                <div class="module-header">
+                    <div>
+                        <div class="module-number">MODULE 5</div>
+                        <div class="module-title">Sub Dashboard</div>
+                    </div>
+                    <span class="module-status in-progress">IN PROGRESS</span>
+                </div>
+                <div class="module-body">
+                    <div class="module-tech">TypeScript | React 18 + Next.js 14 | Vercel</div>
+                    <div class="module-description">
+                        자막 출력 결정, 시계열 관리, 렌더링 지시<br>
+                        - 자막 타임라인 (IN/OUT)<br>
+                        - 자막 프리뷰 (26개 타입)<br>
+                        - 렌더 큐 관리<br><br>
+                        <strong>사용자:</strong> 자막 오퍼레이터
+                    </div>
+                    <div class="module-tables">
+                        <div class="tables-header">READ</div>
+                        <div class="table-list">
+                            <span class="table-tag read">cue_items</span>
+                            <span class="table-tag read">ae.*</span>
+                            <span class="table-tag read">unified_*</span>
+                        </div>
+                    </div>
+                    <div class="module-tables" style="margin-top: 8px;">
+                        <div class="tables-header">WRITE</div>
+                        <div class="table-list">
+                            <span class="table-tag write">render_jobs</span>
+                            <span class="table-tag write">render_settings</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Module 6: AE-Nexrender -->
+            <div class="module-node in-progress" style="left: 960px; top: 1450px; width: 480px;">
+                <div class="module-header">
+                    <div>
+                        <div class="module-number">MODULE 6</div>
+                        <div class="module-title">AE-Nexrender Module</div>
+                    </div>
+                    <span class="module-status in-progress">IN PROGRESS</span>
+                </div>
+                <div class="module-body">
+                    <div class="module-tech">Node.js 20+ | Nexrender + aerender.exe | Local</div>
+                    <div class="module-description">
+                        AEP 컴포지션 렌더링 → 출력물 저장<br>
+                        - render_jobs 폴링/Realtime<br>
+                        - After Effects 렌더링<br>
+                        - 출력: MP4/MOV (ProRes 4444)<br><br>
+                        <strong>AEP:</strong> 26개 자막 컴포지션, 84개 필드
+                    </div>
+                    <div class="module-tables">
+                        <div class="tables-header">READ/WRITE</div>
+                        <div class="table-list">
+                            <span class="table-tag read">render_jobs</span>
+                            <span class="table-tag read">ae.compositions</span>
+                            <span class="table-tag write">render_jobs.status</span>
+                            <span class="table-tag write">render_outputs</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Output Section -->
+            <div class="output-section" style="top: 1750px;">
+                <div class="output-title">OUTPUT</div>
+                <div class="output-flow">
+                    <div class="output-item">\\nas\renders</div>
+                    <span class="output-arrow">→</span>
+                    <div class="output-item">vMix/OBS</div>
+                    <span class="output-arrow">→</span>
+                    <div class="output-item">방송 송출<br>(RTMP/SDI)</div>
+                </div>
+                <div style="margin-top: 12px; font-size: 10px; color: var(--text-muted);">
+                    MP4 (H.264) | MOV (ProRes 4444) | PNG Sequence
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+        <div class="legend-title">LEGEND</div>
+        <div class="legend-items">
+            <div class="legend-item">
+                <div class="legend-color" style="background: var(--accent-green);"></div>
+                <span>Completed</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: var(--accent-yellow);"></div>
+                <span>In Progress</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: var(--accent-blue);"></div>
+                <span>Database Hub</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="border: 2px solid var(--accent-green); background: transparent;"></div>
+                <span>WRITE Table</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="border: 2px solid var(--accent-blue); background: transparent;"></div>
+                <span>READ Table</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mini Map -->
+    <div class="minimap">
+        <div class="minimap-content">
+            <div class="minimap-node completed" style="left: 20px; top: 8px; width: 50px; height: 15px;"></div>
+            <div class="minimap-node in-progress" style="left: 20px; top: 45px; width: 50px; height: 15px;"></div>
+            <div class="minimap-node in-progress" style="left: 75px; top: 50px; width: 40px; height: 35px;"></div>
+            <div class="minimap-node in-progress" style="left: 20px; top: 85px; width: 35px; height: 20px;"></div>
+            <div class="minimap-node in-progress" style="left: 140px; top: 85px; width: 35px; height: 20px;"></div>
+            <div class="minimap-node in-progress" style="left: 75px; top: 110px; width: 40px; height: 15px;"></div>
+            <div class="minimap-viewport" style="left: 40px; top: 30px; width: 80px; height: 60px;"></div>
+        </div>
+    </div>
+
+    <script>
+        let scale = 1;
+        let translateX = 0;
+        let translateY = 0;
+        let isDragging = false;
+        let startX, startY;
+
+        const canvas = document.getElementById('canvas');
+        const container = document.getElementById('canvasContainer');
+        const zoomLevelEl = document.getElementById('zoomLevel');
+
+        function updateTransform() {
+            canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+            zoomLevelEl.textContent = Math.round(scale * 100) + '%';
+        }
+
+        function zoomIn() {
+            scale = Math.min(scale * 1.2, 3);
+            updateTransform();
+        }
+
+        function zoomOut() {
+            scale = Math.max(scale / 1.2, 0.3);
+            updateTransform();
+        }
+
+        function resetZoom() {
+            scale = 1;
+            translateX = 0;
+            translateY = 0;
+            updateTransform();
+        }
+
+        container.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX - translateX;
+            startY = e.clientY - translateY;
+        });
+
+        container.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            translateX = e.clientX - startX;
+            translateY = e.clientY - startY;
+            updateTransform();
+        });
+
+        container.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        container.addEventListener('mouseleave', () => {
+            isDragging = false;
+        });
+
+        container.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            if (e.deltaY < 0) {
+                zoomIn();
+            } else {
+                zoomOut();
+            }
+        });
+
+        // Initial position
+        translateY = -200;
+        updateTransform();
+    </script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+task_id: task_008
+agent: backend-dev
+status: completed
+started_at: 2026-01-15T15:25:00Z
+completed_at: 2026-01-15T15:35:00Z
+output:
+  summary: |
+    파일 검증 + NAS 복사 + 상태 업데이트 시스템 구현 완료.
+    FileHandler 서비스로 모듈화하여 재사용성 및 테스트 가능성 향상.
+    CyprusRenderOutput 모델 추가로 렌더링 결과 메타데이터 체계적 관리.
+
+  files_created:
+    - path: C:\claude\automation_ae\backend\app\services\file_handler.py
+      description: 파일 검증/NAS 복사/상태 업데이트 통합 서비스 (372줄)
+      functions:
+        - validate_output_file: 파일 존재/크기/포맷 검증
+        - extract_video_metadata: ffprobe 기반 메타데이터 추출
+        - copy_to_nas: NAS 복사 (재시도 3회, 중복 처리)
+        - create_output_record: cyprus_render_outputs 레코드 생성
+        - mark_job_completed: cyprus_render_jobs 완료 처리
+        - process_render_output: 전체 워크플로우 통합
+
+    - path: C:\claude\automation_ae\backend\app\models\cyprus_render_output.py
+      description: CyprusRenderOutput 모델 (렌더링 결과 메타데이터)
+      fields:
+        - job_id: 1:1 관계 (unique constraint)
+        - local_path, nas_path: 파일 경로
+        - file_format, file_size: 파일 정보
+        - video_codec, width, height, duration, frame_rate: 비디오 메타데이터
+        - nas_copied, nas_copy_attempts, nas_error_message: NAS 복사 정보
+
+    - path: C:\claude\automation_ae\backend\alembic\versions\20260115_1530_004_add_cyprus_render_output.py
+      description: DB 마이그레이션 파일 (cyprus_render_outputs 테이블 생성)
+
+  files_modified:
+    - path: C:\claude\automation_ae\backend\app\workers\render_queue_worker.py
+      changes:
+        - _post_process 메서드를 FileHandler.process_render_output으로 리팩토링
+        - _validate_output_file, _copy_to_nas 메서드 제거 (중복 제거)
+        - 불필요한 import 정리 (os, shutil, subprocess, json)
+
+    - path: C:\claude\automation_ae\backend\app\models\cyprus_render_job.py
+      changes:
+        - CyprusRenderOutput 관계 추가 (1:1, cascade delete-orphan)
+
+    - path: C:\claude\automation_ae\backend\app\models\__init__.py
+      changes:
+        - CyprusRenderOutput 모델 import 및 __all__ 추가
+
+  functions_implemented:
+    - FileHandler.validate_output_file:
+        description: 파일 존재, 최소 크기(100KB), 포맷(mp4/mov/png) 검증
+        returns: (file_size, file_format)
+        raises: FileValidationError
+
+    - FileHandler.extract_video_metadata:
+        description: ffprobe로 codec/해상도/duration/fps 추출
+        returns: VideoMetadata | None
+        optional: 실패 시 None (비치명적)
+
+    - FileHandler.copy_to_nas:
+        description: \\nas\renders\YYYYMMDD\job_NNNNNN.mp4 복사
+        features:
+          - 재시도 3회 (MAX_NAS_COPY_RETRIES)
+          - 중복 파일 감지 시 타임스탬프 추가
+          - 복사 검증 (크기 비교)
+        raises: NASCopyError
+
+    - FileHandler.create_output_record:
+        description: cyprus_render_outputs 레코드 생성
+        fields: local_path, nas_path, file_size, metadata 등
+
+    - FileHandler.mark_job_completed:
+        description: cyprus_render_jobs.status = 'completed', completed_at 업데이트
+
+    - FileHandler.process_render_output:
+        description: 전체 후처리 워크플로우 통합
+        workflow:
+          - Step 1. 파일 검증
+          - Step 2. 메타데이터 추출 (비디오만)
+          - Step 3. NAS 복사 (enable_nas_copy=True)
+          - Step 4. Output 레코드 생성
+          - Step 5. Job 완료 처리
+
+  technical_details:
+    validation:
+      min_file_size: 100KB
+      supported_formats: [mp4, mov, png]
+      ffprobe_timeout: 10초
+
+    nas_copy:
+      max_retries: 3
+      path_pattern: "\\\\nas\\renders\\{YYYYMMDD}\\job_{JOBID:06d}.{ext}"
+      duplicate_handling: "파일명에 타임스탬프 추가 (HHMMSS)"
+      verification: 크기 비교 (source == dest)
+
+    state_transition:
+      before: rendering (progress: 95%)
+      after: completed (progress: 100%, completed_at: NOW())
+
+    database:
+      new_table: cyprus_render_outputs
+      relationship: 1:1 with cyprus_render_jobs
+      cascade: delete-orphan
+
+  integration:
+    - render_queue_worker.py의 _post_process에서 FileHandler.process_render_output 호출
+    - 기존 중복 코드 90줄 제거, 모듈화로 테스트 가능성 향상
+    - NAS 복사 실패 시에도 로컬 파일로 완료 처리 가능 (유연성)
+
+errors: null

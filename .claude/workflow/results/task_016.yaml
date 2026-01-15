@@ -1,0 +1,115 @@
+task_id: "016"
+issue: "#97"
+title: "Player Grid 컴포넌트 구현"
+status: "completed"
+timestamp: "2026-01-15T00:00:00Z"
+
+files_created:
+  - path: "C:\\claude\\automation_dashboard\\src\\components\\features\\player-grid\\PlayerGrid.tsx"
+    description: "3x3 그리드 컨테이너 (최대 9명)"
+    features:
+      - "grid-cols-3 레이아웃"
+      - "빈 슬롯 자동 채우기"
+      - "플레이어 선택 하이라이트"
+      - "새로고침 버튼"
+      - "총 플레이어 수 표시"
+    data_testid:
+      - "player-grid"
+      - "refresh-button"
+      - "player-count"
+      - "empty-slot-{1-9}"
+
+  - path: "C:\\claude\\automation_dashboard\\src\\components\\features\\player-grid\\PlayerCard.tsx"
+    description: "개별 플레이어 카드"
+    features:
+      - "아바타 (이니셜 또는 이미지)"
+      - "이름 및 좌석 위치"
+      - "상태 뱃지 (Active/Folded/All In/Out)"
+      - "ChipDisplay 통합"
+      - "ChipChart 통합"
+      - "클릭 선택 지원"
+    data_testid:
+      - "player-card-{position}"
+      - "player-avatar"
+      - "player-name"
+      - "player-seat"
+      - "player-status"
+
+  - path: "C:\\claude\\automation_dashboard\\src\\components\\features\\player-grid\\ChipDisplay.tsx"
+    description: "칩 카운트 표시"
+    features:
+      - "숫자 포맷 (1.2M, 120K)"
+      - "BB 단위 변환"
+      - "+/- 변동 색상 (녹색/빨강)"
+      - "크기 옵션 (sm/md/lg)"
+    data_testid:
+      - "chip-display"
+      - "chip-display-bbs"
+      - "chip-display-change"
+
+  - path: "C:\\claude\\automation_dashboard\\src\\components\\features\\player-grid\\ChipChart.tsx"
+    description: "칩 분포 차트"
+    features:
+      - "진행률 바 형태"
+      - "전체 대비 비율 계산"
+      - "색상 자동 변경 (70%+ 녹색, 50%+ 주황, 50%- 빨강)"
+      - "애니메이션 전환"
+    data_testid:
+      - "chip-chart"
+      - "chip-chart-bar"
+
+  - path: "C:\\claude\\automation_dashboard\\src\\components\\features\\player-grid\\index.ts"
+    description: "컴포넌트 export"
+    exports:
+      - "PlayerGrid"
+      - "PlayerCard"
+      - "ChipDisplay"
+      - "ChipChart"
+
+implementation_details:
+  type_integration:
+    - "HandPlayer 타입 사용 (from @/types)"
+    - "PlayerPosition 타입 사용 (1-9)"
+
+  styling:
+    - "Tailwind CSS 다크 테마"
+    - "broadcast-* 커스텀 색상"
+    - "반응형 hover/transition 효과"
+
+  data_flow:
+    - "props로 players 배열 전달"
+    - "총 칩 수 자동 계산"
+    - "선택 상태 로컬 관리"
+
+  supabase_mapping:
+    source: "json.hand_players"
+    fields:
+      - "player_name → playerName"
+      - "seat → position (1-9)"
+      - "end_stack_amt → endStack"
+      - "start_stack_amt → startStack"
+      - "bbs (계산값)"
+
+code_style:
+  - "React 18 함수형 컴포넌트"
+  - "TypeScript strict mode"
+  - "Props 인터페이스 명시"
+  - "JSDoc 주석"
+  - "data-testid 속성 추가"
+
+testing_ready:
+  unit_tests:
+    - "ChipDisplay 포맷 함수"
+    - "ChipChart 퍼센트 계산"
+    - "PlayerCard 상태 뱃지"
+  integration_tests:
+    - "PlayerGrid 렌더링"
+    - "플레이어 선택 이벤트"
+    - "빈 슬롯 처리"
+
+next_steps:
+  - "PlayerGrid를 메인 대시보드에 통합"
+  - "sessionStore 연동"
+  - "Supabase realtime 구독"
+  - "Storybook 스토리 작성"
+  - "E2E 테스트 추가"

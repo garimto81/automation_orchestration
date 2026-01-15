@@ -1,0 +1,50 @@
+task_id: task_006
+agent: backend-dev
+status: completed
+started_at: 2026-01-15T09:30:00Z
+completed_at: 2026-01-15T09:45:00Z
+output:
+  summary: |
+    render_queue 폴링 + Job Claim 원자적 연산 구현 완료.
+    MODULE_6_DATAFLOW_DESIGN.md 설계 기반 새로운 RenderQueueWorker 작성.
+    Adaptive Polling, SELECT FOR UPDATE SKIP LOCKED, 상태 전이, 후처리 로직 포함.
+
+  key_features:
+    - "Adaptive Polling: 5초(작업 발견) ~ 30초(idle) 자동 조정"
+    - "SELECT FOR UPDATE SKIP LOCKED: race condition 방지 원자적 Job Claim"
+    - "상태 전이: pending → processing → completed/failed"
+    - "Nexrender 진행률 폴링: 5초 간격, 상태/진행률 실시간 반영"
+    - "후처리: 파일 검증(존재/크기/ffprobe) + NAS 복사 + 크기 검증"
+
+  architecture_highlights:
+    - "Worker Crash Recovery: lock_expires_at 관리 (30분 타임아웃)"
+    - "에러 분류: retryable/non-retryable 구분"
+    - "재시도 로직: 지수 백오프(60초 → 120초 → 240초)"
+    - "분산 처리: 여러 워커 동시 실행 가능 (SKIP LOCKED)"
+
+  files_created:
+    - C:\claude\automation_ae\backend\app\workers\render_queue_worker.py
+
+  files_modified: []
+
+  technical_details:
+    database: PostgreSQL (Supabase 또는 로컬)
+    concurrency_control: "SELECT FOR UPDATE SKIP LOCKED"
+    polling_strategy: "Adaptive (5s/10s/30s)"
+    state_machine: "pending → processing → completed/failed"
+    timeout: "렌더링 30분, Lock 30분"
+    validation: "파일 존재 + 최소 크기(100KB) + ffprobe 메타데이터"
+
+  integration_points:
+    - "CyprusRenderJob 모델 사용 (기존 DB 스키마)"
+    - "CyprusTemplate 조회 (템플릿 파일 경로)"
+    - "Nexrender Sync Client 사용 (기존 서비스)"
+    - "Settings에서 OUTPUT_DIR, NAS_OUTPUT_PATH 참조"
+
+  next_steps:
+    - "Worker Crash Recovery 백그라운드 작업 추가 (10분마다)"
+    - "Monitoring 메트릭 수집 (Prometheus/Grafana)"
+    - "Alert 설정 (실패율 > 10%, pending_count > 10)"
+    - "테스트 코드 작성 (pytest)"
+
+errors: null

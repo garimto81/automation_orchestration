@@ -1,0 +1,57 @@
+task_id: task_013
+agent: backend-dev
+status: completed
+started_at: "2026-01-15T14:30:00Z"
+completed_at: "2026-01-15T14:45:00Z"
+output:
+  summary: |
+    Main ↔ Sub Dashboard WebSocket 서버/클라이언트 구현 완료.
+    TypeScript strict mode 기반 7개 파일 생성.
+    6개 Main→Sub 메시지, 6개 Sub→Main 메시지 타입 정의.
+    재연결, Heartbeat, 에러 처리 로직 포함.
+
+  files_created:
+    - C:\claude\automation_dashboard\src\lib\websocket\config.ts
+    - C:\claude\automation_dashboard\src\lib\websocket\types.ts
+    - C:\claude\automation_dashboard\src\lib\websocket\server.ts
+    - C:\claude\automation_dashboard\src\lib\websocket\mainClient.ts
+    - C:\claude\automation_dashboard\src\lib\websocket\subClient.ts
+    - C:\claude\automation_dashboard\src\lib\websocket\handlers.ts
+    - C:\claude\automation_dashboard\src\lib\websocket\index.ts
+
+  message_types: 12
+
+  implementation_details:
+    server:
+      - "Node.js ws 라이브러리 기반 WebSocket 서버"
+      - "포트 3001, Main/Sub 클라이언트 구분 (type=main/sub)"
+      - "메시지 라우팅, Heartbeat 타임아웃 감지"
+      - "싱글톤 패턴, getServerInstance() 함수 제공"
+
+    main_client:
+      - "Main Dashboard용 WebSocket 클라이언트"
+      - "6개 전송 함수: sendCueItemSelected, sendHandUpdated 등"
+      - "자동 재연결 (최대 5회), Heartbeat 30초 간격"
+      - "이벤트 핸들러: onMessage, onConnection, onError"
+
+    sub_client:
+      - "Sub Dashboard용 WebSocket 클라이언트"
+      - "5개 전송 함수: sendRenderStatusUpdate, sendRenderComplete 등"
+      - "자동 재연결, Heartbeat 응답 전송"
+      - "이벤트 핸들러 시스템 동일"
+
+    handlers:
+      - "createMainMessageRouter: Sub→Main 메시지 라우팅"
+      - "createSubMessageRouter: Main→Sub 메시지 라우팅"
+      - "validateMessage: 메시지 스키마 검증"
+      - "타입 가드 함수 제공"
+
+    features:
+      - "TypeScript strict mode"
+      - "async/await 패턴"
+      - "에러 핸들링 및 로깅"
+      - "연결 상태 추적 (connected/disconnected/reconnecting)"
+      - "Heartbeat 타임아웃 감지"
+      - "메시지 타임아웃 설정 가능"
+
+errors: null

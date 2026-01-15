@@ -1,0 +1,72 @@
+task_id: task_002
+agent: database-specialist
+status: completed
+started_at: '2026-01-15T10:30:00Z'
+completed_at: '2026-01-15T11:15:00Z'
+output:
+  summary: |
+    Manual, AE, Cuesheet 스키마 DDL 생성 완료.
+    11개 테이블 + 5개 추가 테이블(cue_templates, gfx_triggers 포함) + 4개 유틸리티 뷰 작성.
+    자동 updated_at 트리거, 큐시트 진행률 자동 갱신 트리거 포함.
+
+  tables_created:
+    - manual.players_master
+    - manual.player_profiles
+    - manual.commentators
+    - manual.venues
+    - manual.events
+    - ae.templates
+    - ae.compositions
+    - ae.comp_layers
+    - ae.data_mappings
+    - ae.render_jobs
+    - ae.render_outputs
+    - cuesheet.broadcast_sessions
+    - cuesheet.cue_sheets
+    - cuesheet.cue_items
+    - cuesheet.cue_templates
+    - cuesheet.gfx_triggers
+
+  views_created:
+    - manual.player_details
+    - cuesheet.cue_sheet_summary
+    - ae.render_queue_status
+    - ae.composition_mapping_summary
+
+  enums_created:
+    - manual.image_type
+    - manual.match_method
+    - ae.render_status
+    - ae.output_format
+    - ae.data_source_type
+    - cuesheet.broadcast_status
+    - cuesheet.sheet_type
+    - cuesheet.sheet_status
+    - cuesheet.cue_type
+    - cuesheet.cue_item_status
+    - cuesheet.trigger_type
+
+  files_created:
+    - C:\claude\automation_hub\db\migrations\001_create_schemas.sql
+    - C:\claude\automation_hub\db\migrations\002_create_enums.sql
+    - C:\claude\automation_hub\db\migrations\003_create_manual_tables.sql
+    - C:\claude\automation_hub\db\migrations\004_create_ae_tables.sql
+    - C:\claude\automation_hub\db\migrations\005_create_cuesheet_tables.sql
+    - C:\claude\automation_hub\db\migrations\006_create_views.sql
+
+  key_features:
+    - 3개 스키마 독립 분리 (manual, ae, cuesheet)
+    - 84개 필드 매핑 지원 (ae.data_mappings)
+    - 26개 컴포지션 관리 (ae.compositions)
+    - 렌더 작업 큐 우선순위 관리 (priority 1-100)
+    - 큐시트 진행률 자동 추적 (total_items, completed_items)
+    - Enum 타입으로 데이터 무결성 보장
+    - 인덱스 최적화 (player name, render status, cue sort order)
+
+  notes: |
+    - unified_players 뷰는 json/wsop_plus 스키마 생성 후 활성화 필요
+    - ae.render_jobs.hand_id는 json.hands 테이블 참조 (FK 미설정)
+    - cuesheet.gfx_triggers는 architecture.md 기준 추가됨
+    - RLS 정책은 별도 마이그레이션 필요 (Supabase 배포 시)
+
+errors: null
