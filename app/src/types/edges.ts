@@ -7,12 +7,14 @@ export type DataFormat = 'json' | 'sql' | 'api'
 export interface DependencyEdgeData {
   dependencyType: DependencyType
   description?: string
+  [key: string]: unknown
 }
 
 export interface DataFlowEdgeData {
   flowType: FlowType
   dataFormat: DataFormat
   animated?: boolean
+  [key: string]: unknown
 }
 
 export type DependencyEdge = Edge<DependencyEdgeData>

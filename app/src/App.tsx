@@ -6,7 +6,8 @@ import {
   MiniMap,
   useNodesState,
   useEdgesState,
-  type OnNodeClick,
+  type Node,
+  type NodeMouseHandler,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
@@ -23,7 +24,7 @@ export default function App() {
     [selectedProjectId]
   )
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes as Node[])
   const [edges, , onEdgesChange] = useEdgesState(initialEdges)
 
   // Update node selection state
@@ -35,7 +36,7 @@ export default function App() {
     [nodes, selectedProjectId]
   )
 
-  const handleNodeClick: OnNodeClick = useCallback((_, node) => {
+  const handleNodeClick: NodeMouseHandler = useCallback((_event, node) => {
     setSelectedProject(node.id)
   }, [setSelectedProject])
 

@@ -3,6 +3,7 @@ import type { Project } from './project'
 
 export interface ProjectNodeData extends Project {
   isSelected?: boolean
+  [key: string]: unknown
 }
 
 export type ProjectNode = Node<ProjectNodeData, 'project'>
@@ -14,6 +15,7 @@ export interface ServiceNodeData {
   status: 'healthy' | 'unhealthy' | 'unknown'
   port?: number
   responseTime?: number
+  [key: string]: unknown
 }
 
 export type ServiceNode = Node<ServiceNodeData, 'service'>
