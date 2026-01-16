@@ -20,4 +20,5 @@ export interface DataFlowEdgeData {
 export type DependencyEdge = Edge<DependencyEdgeData>
 export type DataFlowEdge = Edge<DataFlowEdgeData>
 
-export type AppEdge = DependencyEdge | DataFlowEdge
+// 일반 Edge도 허용 (React Flow 기본 타입)
+export type AppEdge = Edge

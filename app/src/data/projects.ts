@@ -1,13 +1,13 @@
 import type { Project } from '@/types'
 
-// GFX Pipeline Modules Only
+// GFX Pipeline Modules - 6개 노드 (NAS-Supabase Sync 제거, NAS Sync가 직접 Supabase로 마이그레이션)
 export const projects: Project[] = [
   {
     id: 'gfx_simulator',
     name: 'GFX Simulator',
     displayName: 'GFX Simulator',
-    description: '25/10 SC 기준 1분마다 1핸드 생성',
-    path: 'C:\\claude\\gfx_pipeline\\simulator',
+    description: 'GFX 가상 생성기 - 핸드 생성하여 NAS에 저장',
+    path: 'C:\\claude\\automation_feature_table',
     status: 'active',
     techStack: ['Python', 'Streamlit', 'PokerGFX API'],
     prds: [],
@@ -16,49 +16,35 @@ export const projects: Project[] = [
       { name: 'simulator', status: 'healthy', responseTime: 8 },
     ],
     github: { recentCommits: 0, openPRs: 0, openIssues: 0 },
+    githubUrl: 'https://github.com/garimto81/automation_feature_table',
     dependencies: { incoming: [], outgoing: ['nas_sync'] },
   },
   {
     id: 'nas_sync',
     name: 'NAS Sync',
     displayName: 'NAS Sync',
-    description: '시뮬레이터 → NAS 폴더 동기화',
-    path: 'C:\\claude\\gfx_pipeline\\nas_sync',
-    status: 'active',
-    techStack: ['Python', 'Watchdog', 'File System'],
-    prds: [],
-    overallProgress: 100,
+    description: 'NAS에 저장된 GFX JSON을 Supabase에 마이그레이션',
+    path: 'C:\\claude\\gfx_json',
+    status: 'development',
+    techStack: ['Python', 'Watchdog', 'Supabase-py', 'Pydantic'],
+    prds: [
+      { id: 'PRD-SYNC-001', title: 'JSON to Supabase Migration', totalItems: 20, completedItems: 17, progress: 85 },
+    ],
+    overallProgress: 85,
     services: [
       { name: 'nas-sync', status: 'healthy', responseTime: 5 },
     ],
     github: { recentCommits: 0, openPRs: 0, openIssues: 0 },
-    dependencies: { incoming: ['gfx_simulator'], outgoing: ['nas_supabase_sync'] },
-  },
-  {
-    id: 'nas_supabase_sync',
-    name: 'NAS-Supabase Sync',
-    displayName: 'NAS-Supabase',
-    description: 'NAS JSON → Supabase 마이그레이션 (Docker)',
-    path: 'C:\\claude\\gfx_pipeline\\nas_supabase_sync',
-    status: 'active',
-    techStack: ['Docker', 'Python', 'Supabase-py', 'Pydantic'],
-    prds: [
-      { id: 'PRD-SYNC-001', title: 'Docker Sync Service', totalItems: 20, completedItems: 17, progress: 85 },
-    ],
-    overallProgress: 85,
-    services: [
-      { name: 'docker-sync', status: 'healthy', responseTime: 15 },
-    ],
-    github: { recentCommits: 0, openPRs: 0, openIssues: 0 },
-    dependencies: { incoming: ['nas_sync'], outgoing: ['supabase_db'] },
+    githubUrl: 'https://github.com/garimto81/gfx_json',
+    dependencies: { incoming: ['gfx_simulator'], outgoing: ['supabase_db'] },
   },
   {
     id: 'supabase_db',
     name: 'Supabase DB',
     displayName: 'Supabase DB',
-    description: '6개 DB 통합 (gfx/wsop+/manual/cuesheet/aep/progress)',
-    path: 'C:\\claude\\gfx_pipeline\\supabase',
-    status: 'active',
+    description: 'Supabase 모든 DB 설계 - 6개 DB 통합',
+    path: 'C:\\claude\\automation_schema',
+    status: 'development',
     techStack: ['Supabase', 'PostgreSQL 15', 'Realtime'],
     prds: [
       { id: 'PRD-DB-001', title: 'Schema Design', totalItems: 30, completedItems: 27, progress: 90 },
@@ -68,13 +54,14 @@ export const projects: Project[] = [
       { name: 'supabase-db', status: 'healthy', responseTime: 10 },
     ],
     github: { recentCommits: 0, openPRs: 0, openIssues: 0 },
-    dependencies: { incoming: ['nas_supabase_sync'], outgoing: ['main_dashboard'] },
+    githubUrl: 'https://github.com/garimto81/automation_schema',
+    dependencies: { incoming: ['nas_sync'], outgoing: ['main_dashboard'] },
   },
   {
     id: 'main_dashboard',
     name: 'Main Dashboard',
     displayName: 'Main Dashboard',
-    description: '방송 순서 핸드 선택, 해설진 커뮤니케이션',
+    description: '방송 순서 핸드 선택, 해설진 커뮤니케이션 (다른 파트 작업중)',
     path: 'C:\\claude\\gfx_pipeline\\main_dashboard',
     status: 'development',
     techStack: ['Next.js 14', 'React 18', 'TypeScript', 'Supabase'],
@@ -87,6 +74,7 @@ export const projects: Project[] = [
       { name: 'main-dash', status: 'healthy', responseTime: 18 },
     ],
     github: { recentCommits: 0, openPRs: 0, openIssues: 0 },
+    // Main Dashboard는 GitHub 연동 없음
     dependencies: { incoming: ['supabase_db'], outgoing: ['sub_dashboard'] },
   },
   {
@@ -94,7 +82,7 @@ export const projects: Project[] = [
     name: 'Sub Dashboard',
     displayName: 'Sub Dashboard',
     description: '자막 데이터 선택, 렌더링 지시',
-    path: 'C:\\claude\\gfx_pipeline\\sub_dashboard',
+    path: 'C:\\claude\\automation_ae',
     status: 'development',
     techStack: ['Next.js 14', 'React 18', 'TypeScript', 'Supabase'],
     prds: [
@@ -106,15 +94,16 @@ export const projects: Project[] = [
       { name: 'sub-dash', status: 'healthy', responseTime: 20 },
     ],
     github: { recentCommits: 0, openPRs: 0, openIssues: 0 },
+    githubUrl: 'https://github.com/garimto81/automation_ae',
     dependencies: { incoming: ['main_dashboard'], outgoing: ['ae_nexrender'] },
   },
   {
     id: 'ae_nexrender',
     name: 'AE-Nexrender',
     displayName: 'AE-Nexrender',
-    description: 'After Effects 렌더링 → 로컬 네트워크 저장',
-    path: 'C:\\claude\\gfx_pipeline\\nexrender',
-    status: 'active',
+    description: 'After Effects 렌더링 → 로컬 네트워크 저장 (PRD 수정 및 개발 계획 수립 예정)',
+    path: 'C:\\claude\\ae_nexrender_module',
+    status: 'development',
     techStack: ['Node.js', 'Nexrender', 'After Effects', 'aerender'],
     prds: [
       { id: 'PRD-AE-001', title: 'Render Worker', totalItems: 20, completedItems: 15, progress: 75 },
@@ -124,6 +113,7 @@ export const projects: Project[] = [
       { name: 'nexrender-worker', status: 'healthy', responseTime: 120 },
     ],
     github: { recentCommits: 0, openPRs: 0, openIssues: 0 },
+    githubUrl: 'https://github.com/garimto81/ae_nexrender_module',
     dependencies: { incoming: ['sub_dashboard'], outgoing: [] },
   },
 ]

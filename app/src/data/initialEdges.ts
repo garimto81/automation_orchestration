@@ -1,6 +1,6 @@
 import type { AppEdge } from '@/types'
 
-// GFX Pipeline Flow - 순차적 데이터 흐름
+// GFX Pipeline Flow - 5개 엣지 (NAS Sync → Supabase DB 직접 연결)
 export const initialEdges: AppEdge[] = [
   // Row 1: Input Pipeline (좌 → 우)
   {
@@ -13,17 +13,8 @@ export const initialEdges: AppEdge[] = [
     label: 'JSON',
   },
   {
-    id: 'nas_sync-nas_supabase_sync',
+    id: 'nas_sync-supabase_db',
     source: 'nas_sync',
-    target: 'nas_supabase_sync',
-    type: 'default',
-    animated: true,
-    style: { stroke: '#000', strokeWidth: 2 },
-    label: 'File Watch',
-  },
-  {
-    id: 'nas_supabase_sync-supabase_db',
-    source: 'nas_supabase_sync',
     target: 'supabase_db',
     type: 'default',
     animated: true,

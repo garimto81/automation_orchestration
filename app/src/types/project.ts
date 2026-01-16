@@ -8,12 +8,18 @@ export interface PRDProgress {
   progress: number
 }
 
+export type DifficultyLevel = 'low' | 'medium' | 'high' | 'unknown'
+
 export interface GitHubStats {
   recentCommits: number
   openPRs: number
   openIssues: number
   lastCommitDate?: string
   lastCommitMessage?: string
+  totalCommits?: number
+  totalIssues?: number
+  lastIssueTitle?: string
+  difficulty?: DifficultyLevel
 }
 
 export interface ServiceStatus {
@@ -34,6 +40,7 @@ export interface Project {
   overallProgress: number
   services: ServiceStatus[]
   github: GitHubStats
+  githubUrl?: string
   dependencies: {
     incoming: string[]
     outgoing: string[]

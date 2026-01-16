@@ -6,8 +6,12 @@ import {
   MiniMap,
   useNodesState,
   useEdgesState,
+  addEdge,
   type Node,
   type NodeMouseHandler,
+  type OnConnect,
+  type OnEdgesDelete,
+  type Connection,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
@@ -17,7 +21,16 @@ import { projects, getProjectSummary, initialNodes, initialEdges } from '@/data'
 import { useUIStore } from '@/stores'
 
 export default function App() {
-  const { selectedProjectId, setSelectedProject } = useUIStore()
+  const {
+    selectedProjectId,
+    setSelectedProject,
+    isSidebarOpen,
+    toggleSidebar,
+    isDetailPanelOpen,
+    toggleDetailPanel,
+    setDetailPanelOpen,
+  } = useUIStore()
+
   const summary = useMemo(() => getProjectSummary(), [])
   const selectedProject = useMemo(
     () => projects.find(p => p.id === selectedProjectId) ?? null,
@@ -25,7 +38,7 @@ export default function App() {
   )
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes as Node[])
-  const [edges, , onEdgesChange] = useEdgesState(initialEdges)
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
 
   // Update node selection state
   const nodesWithSelection = useMemo(
@@ -36,21 +49,21 @@ export default function App() {
     [nodes, selectedProjectId]
   )
 
+  // 노드 클릭 핸들러 - zoom 제거, 상세 패널 열기
   const handleNodeClick: NodeMouseHandler = useCallback((_event, node) => {
     setSelectedProject(node.id)
-  }, [setSelectedProject])
+    setDetailPanelOpen(true)  // 상세 패널 자동 열림
+  }, [setSelectedProject, setDetailPanelOpen])
 
   const handleSidebarSelect = useCallback((id: string) => {
     setSelectedProject(id)
-    // Center on selected node
-    const node = nodes.find(n => n.id === id)
-    if (node) {
-      setNodes(nds => nds.map(n => ({
-        ...n,
-        data: { ...n.data, isSelected: n.id === id },
-      })))
-    }
-  }, [nodes, setNodes, setSelectedProject])
+    setDetailPanelOpen(true)  // 상세 패널 자동 열림
+    // Update node selection
+    setNodes(nds => nds.map(n => ({
+      ...n,
+      data: { ...n.data, isSelected: n.id === id },
+    })))
+  }, [setNodes, setSelectedProject, setDetailPanelOpen])
 
   const handleRefresh = useCallback(() => {
     // TODO: Implement data refresh
@@ -60,6 +73,24 @@ export default function App() {
   const handleCloseDetail = useCallback(() => {
     setSelectedProject(null)
   }, [setSelectedProject])
+
+  // Edge 연결 핸들러
+  const onConnect: OnConnect = useCallback((params: Connection) => {
+    setEdges((eds) => addEdge({
+      ...params,
+      type: 'default',
+      animated: true,
+      style: { stroke: '#000', strokeWidth: 2 },
+    }, eds))
+    // TODO: Supabase에 저장
+    console.log('Edge connected:', params)
+  }, [setEdges])
+
+  // Edge 삭제 핸들러
+  const onEdgesDelete: OnEdgesDelete = useCallback((deletedEdges) => {
+    // TODO: Supabase에서 삭제
+    console.log('Edges deleted:', deletedEdges)
+  }, [])
 
   return (
     <div className="h-screen flex flex-col">
@@ -71,6 +102,8 @@ export default function App() {
           summary={summary}
           selectedId={selectedProjectId ?? undefined}
           onSelect={handleSidebarSelect}
+          isOpen={isSidebarOpen}
+          onToggle={toggleSidebar}
         />
 
         <main className="flex-1 relative">
@@ -80,11 +113,17 @@ export default function App() {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onNodeClick={handleNodeClick}
+            onConnect={onConnect}
+            onEdgesDelete={onEdgesDelete}
             nodeTypes={nodeTypes}
             fitView
             fitViewOptions={{ padding: 0.2 }}
             minZoom={0.3}
             maxZoom={2}
+            // Edge 편집 활성화
+            edgesFocusable={true}
+            connectOnClick={true}
+            deleteKeyCode={['Backspace', 'Delete']}
           >
             <Background color="#f5f5f5" gap={20} />
             <Controls
@@ -106,6 +145,8 @@ export default function App() {
         <DetailPanel
           project={selectedProject}
           onClose={handleCloseDetail}
+          isOpen={isDetailPanelOpen}
+          onToggle={toggleDetailPanel}
         />
       </div>
     </div>
