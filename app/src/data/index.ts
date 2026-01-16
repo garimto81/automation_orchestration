@@ -1,3 +1,5 @@
 export * from './projects'
 export * from './initialNodes'
 export * from './initialEdges'
+export * from './layers'
+export * from './projectDetails'

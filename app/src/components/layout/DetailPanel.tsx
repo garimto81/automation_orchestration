@@ -1,6 +1,9 @@
+import { useState } from 'react'
 import type { Project } from '@/types'
 import { ProgressBar, StatusDot } from '@/components/ui'
-import { useGitHubStats } from '@/hooks'
+import { useGitHubStats, useProjectHealthCheck, useHealthCheckRefresh } from '@/hooks'
+import { projectDetails } from '@/data/projectDetails'
+import { getLayerColor } from '@/data/layers'
 import { clsx } from 'clsx'
 
 interface DetailPanelProps {
@@ -11,11 +14,29 @@ interface DetailPanelProps {
 }
 
 export function DetailPanel({ project, onClose, isOpen, onToggle }: DetailPanelProps) {
+  // 드릴다운 상태
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    schemas: false,
+    endpoints: false,
+  })
+
   // GitHub 실시간 데이터 fetching
   const { data: githubStats, isLoading: isGitHubLoading } = useGitHubStats(project?.githubUrl)
 
+  // Health Check - 스냅샷 기반 (앱 시작 또는 수동 새로고침)
+  const { data: healthResult, isLoading: isHealthLoading } = useProjectHealthCheck(project)
+  const { refreshProject } = useHealthCheckRefresh()
+
   // GitHub 데이터: 실시간 API 데이터 우선, fallback으로 정적 데이터
   const github = githubStats || project?.github || { recentCommits: 0, openPRs: 0, openIssues: 0 }
+
+  // 프로젝트 상세 정보 가져오기
+  const detail = project ? projectDetails[project.id] : null
+  const layerColor = detail ? getLayerColor(detail.layerType) : '#666'
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }))
+  }
   // 닫힌 상태: 토글 버튼만 표시
   if (!isOpen) {
     return (
@@ -71,9 +92,19 @@ export function DetailPanel({ project, onClose, isOpen, onToggle }: DetailPanelP
         </svg>
       </button>
 
-      {/* Header */}
+      {/* Header with Layer Badge */}
       <div className="flex justify-between items-center mb-4 pb-3 border-b border-primary">
-        <span className="text-sm font-semibold">{project.name}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold">{project.name}</span>
+          {detail && (
+            <span
+              className="px-1.5 py-0.5 text-[9px] text-white rounded"
+              style={{ backgroundColor: layerColor }}
+            >
+              {detail.layerType.toUpperCase()}
+            </span>
+          )}
+        </div>
         <span className="cursor-pointer text-lg" onClick={onClose}>&times;</span>
       </div>
 
@@ -93,6 +124,10 @@ export function DetailPanel({ project, onClose, isOpen, onToggle }: DetailPanelP
             </span>
           </div>
           <div className="flex justify-between">
+            <span className="text-secondary">Layer</span>
+            <span style={{ color: layerColor }}>{detail?.layerType?.toUpperCase() || 'N/A'}</span>
+          </div>
+          <div className="flex justify-between">
             <span className="text-secondary">Tech</span>
             <span>{project.techStack.slice(0, 2).join(', ')}</span>
           </div>
@@ -102,6 +137,83 @@ export function DetailPanel({ project, onClose, isOpen, onToggle }: DetailPanelP
           </div>
         </div>
       </section>
+
+      {/* Architecture Drilldown - 스키마 */}
+      {detail?.schemas && detail.schemas.length > 0 && (
+        <section className="mb-5">
+          <h4
+            className="text-[11px] font-semibold tracking-wider mb-2 pb-1.5 border-b border-gray-200 flex items-center justify-between cursor-pointer"
+            onClick={() => toggleSection('schemas')}
+          >
+            <span className="flex items-center gap-1">
+              <span>{expandedSections.schemas ? '▼' : '▶'}</span>
+              DB SCHEMAS ({detail.schemas.length})
+            </span>
+            <span className="text-[9px] text-secondary font-normal">
+              {detail.schemas.reduce((sum, s) => sum + s.tableCount, 0)} tables
+            </span>
+          </h4>
+          {expandedSections.schemas && (
+            <div className="space-y-3">
+              {detail.schemas.map(schema => (
+                <div key={schema.schemaName} className="p-2 bg-gray-50 rounded">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-semibold">{schema.displayName}</span>
+                    <span className="px-1 bg-purple-100 text-purple-700 text-[8px] rounded">
+                      {schema.tableCount} tables
+                    </span>
+                  </div>
+                  <div className="text-[9px] text-secondary mb-2">{schema.description}</div>
+                  <div className="space-y-0.5">
+                    {schema.tables.map(table => (
+                      <div key={table.name} className="flex items-center gap-1 text-[9px]">
+                        <span className="text-gray-400">-</span>
+                        <span className="font-mono">{table.name}</span>
+                        {table.description && (
+                          <span className="text-secondary truncate">({table.description})</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Architecture Drilldown - 엔드포인트 */}
+      {detail?.endpoints && detail.endpoints.length > 0 && (
+        <section className="mb-5">
+          <h4
+            className="text-[11px] font-semibold tracking-wider mb-2 pb-1.5 border-b border-gray-200 flex items-center justify-between cursor-pointer"
+            onClick={() => toggleSection('endpoints')}
+          >
+            <span className="flex items-center gap-1">
+              <span>{expandedSections.endpoints ? '▼' : '▶'}</span>
+              API ENDPOINTS ({detail.endpoints.length})
+            </span>
+          </h4>
+          {expandedSections.endpoints && (
+            <div className="space-y-1.5">
+              {detail.endpoints.map((endpoint, idx) => (
+                <div key={idx} className="flex items-center gap-2 text-[10px]">
+                  <span className={clsx(
+                    'px-1 py-0.5 text-[8px] font-mono rounded',
+                    endpoint.method === 'GET' ? 'bg-green-100 text-green-700' :
+                    endpoint.method === 'POST' ? 'bg-blue-100 text-blue-700' :
+                    endpoint.method === 'PUT' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-red-100 text-red-700'
+                  )}>
+                    {endpoint.method}
+                  </span>
+                  <span className="font-mono flex-1 truncate">{endpoint.path}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* PRD Progress */}
       <section className="mb-5">
@@ -157,6 +269,102 @@ export function DetailPanel({ project, onClose, isOpen, onToggle }: DetailPanelP
           </div>
         ) : (
           <p className="text-xs text-secondary">No services</p>
+        )}
+      </section>
+
+      {/* Health Check - 스냅샷 기반 */}
+      <section className="mb-5">
+        <h4 className="text-[11px] font-semibold tracking-wider mb-2 pb-1.5 border-b border-gray-200 flex items-center justify-between">
+          <span>
+            HEALTH CHECK
+            {isHealthLoading && <span className="ml-2 text-[9px] text-secondary animate-pulse">checking...</span>}
+          </span>
+          {project.healthEndpoint && (
+            <button
+              onClick={() => refreshProject(project.id)}
+              className="text-[9px] text-blue-600 hover:underline"
+              title="Refresh health check"
+            >
+              Refresh
+            </button>
+          )}
+        </h4>
+        {project.healthEndpoint ? (
+          <div className="space-y-2">
+            {/* 상태 표시 */}
+            <div className="flex items-center gap-2 text-xs">
+              <span className={clsx(
+                'w-2 h-2 rounded-full',
+                healthResult?.status === 'online' ? 'bg-green-500' :
+                healthResult?.status === 'offline' ? 'bg-red-500' : 'bg-gray-400'
+              )} />
+              <span className="flex-1">API Status</span>
+              <span className={clsx(
+                'px-1.5 border text-[10px]',
+                healthResult?.status === 'online' ? 'bg-green-500 text-white border-green-500' :
+                healthResult?.status === 'offline' ? 'bg-red-500 text-white border-red-500' :
+                'border-gray-400 text-gray-500'
+              )}>
+                {healthResult?.status?.toUpperCase() || 'UNKNOWN'}
+              </span>
+              {healthResult?.responseTime && (
+                <span className="text-[10px] text-secondary">{healthResult.responseTime}ms</span>
+              )}
+            </div>
+
+            {/* 엔드포인트 정보 */}
+            <div className="text-[10px] text-secondary">
+              <span>Endpoint: </span>
+              <span className="font-mono">{project.healthEndpoint.url}{project.healthEndpoint.path}</span>
+            </div>
+
+            {/* 상세 정보 */}
+            {healthResult?.details && (
+              <div className="mt-2 pt-2 border-t border-gray-100 space-y-1 text-[10px]">
+                {healthResult.details.version && (
+                  <div className="flex justify-between">
+                    <span className="text-secondary">Version</span>
+                    <span>{healthResult.details.version}</span>
+                  </div>
+                )}
+                {healthResult.details.uptime !== undefined && (
+                  <div className="flex justify-between">
+                    <span className="text-secondary">Uptime</span>
+                    <span>{Math.floor(healthResult.details.uptime / 60)}m {healthResult.details.uptime % 60}s</span>
+                  </div>
+                )}
+                {healthResult.details.components && (
+                  <div className="mt-1">
+                    <span className="text-secondary">Components:</span>
+                    {Object.entries(healthResult.details.components).map(([key, value]) => (
+                      <div key={key} className="flex justify-between ml-2">
+                        <span className="text-secondary">{key}</span>
+                        <span className={value === 'ok' || value === 'running' ? 'text-green-600' : 'text-red-500'}>
+                          {value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 에러 표시 */}
+            {healthResult?.error && (
+              <div className="mt-2 text-[10px] text-red-500">
+                Error: {healthResult.error}
+              </div>
+            )}
+
+            {/* 체크 시간 */}
+            {healthResult?.checkedAt && (
+              <div className="text-[9px] text-secondary mt-1">
+                Checked: {new Date(healthResult.checkedAt).toLocaleTimeString()}
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs text-secondary">No health endpoint configured</p>
         )}
       </section>
 

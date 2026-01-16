@@ -36,6 +36,7 @@ export const projects: Project[] = [
     ],
     github: { recentCommits: 0, openPRs: 0, openIssues: 0 },
     githubUrl: 'https://github.com/garimto81/gfx_json',
+    healthEndpoint: { url: 'http://localhost:8080', path: '/health' },
     dependencies: { incoming: ['gfx_simulator'], outgoing: ['supabase_db'] },
   },
   {
@@ -95,6 +96,7 @@ export const projects: Project[] = [
     ],
     github: { recentCommits: 0, openPRs: 0, openIssues: 0 },
     githubUrl: 'https://github.com/garimto81/automation_ae',
+    healthEndpoint: { url: 'http://localhost:8000', path: '/health' },
     dependencies: { incoming: ['main_dashboard'], outgoing: ['ae_nexrender'] },
   },
   {
@@ -114,6 +116,7 @@ export const projects: Project[] = [
     ],
     github: { recentCommits: 0, openPRs: 0, openIssues: 0 },
     githubUrl: 'https://github.com/garimto81/ae_nexrender_module',
+    healthEndpoint: { url: 'http://localhost:3000', path: '/health' },
     dependencies: { incoming: ['sub_dashboard'], outgoing: [] },
   },
 ]

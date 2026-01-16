@@ -70,7 +70,7 @@ AE-Nexrender ◀──Render Job── Sub Dashboard ◀──WebSocket── Ma
 | Edge 저장 (localStorage) | Done |
 | Edge 저장 (Supabase 연동) | Pending |
 | GitHub API 실시간 연동 | Done |
-| Health Check 서비스 | Pending |
+| Health Check 서비스 (스냅샷 기반) | Done |
 | 실시간 업데이트 (WebSocket) | Pending |
 
 ---
@@ -230,6 +230,12 @@ npm run dev
 
 ## 11. Changelog
 
+### v2.1.0 (2026-01-16)
+- Health Check 서비스 추가 (스냅샷 기반)
+  - 앱 시작 시 또는 수동 새로고침 시 한 번 체크
+  - localStorage 캐시 (5분)
+  - NAS Sync, Sub Dashboard, AE-Nexrender 엔드포인트 설정
+
 ### v2.0.0 (2026-01-16)
 - 노드 구조 변경: 7개 → 6개 (NAS-Supabase Sync 제거)
 - 노드별 GitHub URL 연동
@@ -238,7 +244,7 @@ npm run dev
 - Edge 편집 기능 추가 (연결/삭제)
 - GitHub 프로그레스바 추가 (이슈/커밋 기반 난이도)
 - 마지막 이슈/커밋 메시지 표시
-- Supabase Edge 저장 서비스 추가 (선택적)
+- Edge localStorage/Supabase 저장 서비스 추가
 
 ### v1.0.0 (2026-01-15)
 - MVP 구현 완료
