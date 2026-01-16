@@ -17,7 +17,7 @@ import '@xyflow/react/dist/style.css'
 
 import { Header, Sidebar, DetailPanel } from '@/components/layout'
 import { nodeTypes } from '@/components/nodes'
-import { projects, getProjectSummary, initialNodes, initialEdges, createLayerNodes, createLayerEdges } from '@/data'
+import { projects, getProjectSummary, initialNodes, initialEdges, createLayerNodes, createLayerEdges, layerDefinitions } from '@/data'
 import { useUIStore } from '@/stores'
 import { edgeService } from '@/services/supabase'
 
@@ -44,14 +44,42 @@ export default function App() {
     const layerNodes = createLayerNodes()
     const layerEdges = createLayerEdges()
 
-    // combined 모드: 모듈 노드를 Layer 아래로 재배치
-    const repositionedModuleNodes = (initialNodes as Node[]).map(node => ({
-      ...node,
-      position: {
-        x: node.position.x,
-        y: node.position.y + 200, // Layer 노드 아래로 이동
-      },
-    }))
+    // Layer 시작 위치와 간격 (layers.ts와 동일하게)
+    const layerStartX = 20
+    const layerGapX = 165
+    const moduleY = 280 // Layer 아래 위치
+    const moduleGapY = 70 // 같은 Layer 내 모듈 간격
+
+    // combined 모드: 모듈 노드를 해당 Layer 아래로 정렬
+    const getLayerIndex = (moduleId: string): number => {
+      return layerDefinitions.findIndex(layer => layer.moduleIds.includes(moduleId))
+    }
+
+    // 각 Layer별 모듈 위치 카운터
+    const layerModuleCount: Record<number, number> = {}
+
+    const repositionedModuleNodes = (initialNodes as Node[]).map(node => {
+      const layerIndex = getLayerIndex(node.id)
+      if (layerIndex === -1) {
+        // Layer에 속하지 않는 노드는 원래 위치 + 오프셋
+        return {
+          ...node,
+          position: { x: node.position.x, y: node.position.y + 200 },
+        }
+      }
+
+      // 해당 Layer 내 몇 번째 모듈인지 계산
+      const moduleIndex = layerModuleCount[layerIndex] ?? 0
+      layerModuleCount[layerIndex] = moduleIndex + 1
+
+      return {
+        ...node,
+        position: {
+          x: layerStartX + layerIndex * layerGapX,
+          y: moduleY + moduleIndex * moduleGapY,
+        },
+      }
+    })
 
     switch (viewMode) {
       case 'layers':
