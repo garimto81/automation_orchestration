@@ -17,12 +17,13 @@ import '@xyflow/react/dist/style.css'
 
 import { Header, Sidebar, DetailPanel } from '@/components/layout'
 import { nodeTypes } from '@/components/nodes'
-import { projects, getProjectSummary, initialNodes, initialEdges } from '@/data'
+import { projects, getProjectSummary, initialNodes, initialEdges, createLayerNodes, createLayerEdges } from '@/data'
 import { useUIStore } from '@/stores'
 import { edgeService } from '@/services/supabase'
 
 export default function App() {
   const {
+    viewMode,
     selectedProjectId,
     setSelectedProject,
     isSidebarOpen,
@@ -38,8 +39,42 @@ export default function App() {
     [selectedProjectId]
   )
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes as Node[])
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
+  // viewMode에 따른 노드/엣지 생성
+  const { baseNodes, baseEdges } = useMemo(() => {
+    const layerNodes = createLayerNodes()
+    const layerEdges = createLayerEdges()
+
+    // combined 모드: 모듈 노드를 Layer 아래로 재배치
+    const repositionedModuleNodes = (initialNodes as Node[]).map(node => ({
+      ...node,
+      position: {
+        x: node.position.x,
+        y: node.position.y + 200, // Layer 노드 아래로 이동
+      },
+    }))
+
+    switch (viewMode) {
+      case 'layers':
+        return { baseNodes: layerNodes as Node[], baseEdges: layerEdges }
+      case 'combined':
+        return {
+          baseNodes: [...layerNodes, ...repositionedModuleNodes] as Node[],
+          baseEdges: [...layerEdges, ...initialEdges],
+        }
+      case 'modules':
+      default:
+        return { baseNodes: initialNodes as Node[], baseEdges: initialEdges }
+    }
+  }, [viewMode])
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(baseNodes)
+  const [edges, setEdges, onEdgesChange] = useEdgesState(baseEdges)
+
+  // viewMode 변경 시 노드/엣지 업데이트
+  useEffect(() => {
+    setNodes(baseNodes)
+    setEdges(baseEdges)
+  }, [viewMode, baseNodes, baseEdges, setNodes, setEdges])
 
   // 초기 Edge 로드 (localStorage 우선, 없으면 initialEdges 저장)
   useEffect(() => {
