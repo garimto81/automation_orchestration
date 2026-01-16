@@ -30,7 +30,7 @@ export const LayerNode = memo(function LayerNode({
   return (
     <div
       className={clsx(
-        'px-4 py-3 rounded-lg border-2 min-w-[200px]',
+        'px-3 py-2 rounded-lg border-2 w-[150px]',
         'transition-all duration-200',
         selected ? 'shadow-lg' : 'shadow-sm',
         isExpanded ? 'bg-white' : 'bg-opacity-90'

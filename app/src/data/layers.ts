@@ -55,9 +55,9 @@ export const layerDefinitions: LayerDefinition[] = [
  * Layer 노드 생성
  */
 export function createLayerNodes(): Node<LayerNodeData>[] {
-  const startX = 50
-  const startY = 50
-  const gapX = 280
+  const startX = 20
+  const startY = 100
+  const gapX = 165 // 노드 너비(150) + 간격(15)
 
   return layerDefinitions.map((layer, index) => ({
     id: `layer-${layer.type}`,

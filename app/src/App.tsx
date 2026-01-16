@@ -180,6 +180,7 @@ export default function App() {
 
         <main className="flex-1 relative">
           <ReactFlow
+            key={viewMode}
             nodes={nodesWithSelection}
             edges={edges}
             onNodesChange={onNodesChange}
@@ -189,8 +190,8 @@ export default function App() {
             onEdgesDelete={onEdgesDelete}
             nodeTypes={nodeTypes}
             fitView
-            fitViewOptions={{ padding: 0.2 }}
-            minZoom={0.3}
+            fitViewOptions={{ padding: 0.05, includeHiddenNodes: false }}
+            minZoom={0.2}
             maxZoom={2}
             // Edge 편집 활성화
             edgesFocusable={true}
