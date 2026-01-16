@@ -64,11 +64,12 @@ AE-Nexrender ◀──Render Job── Sub Dashboard ◀──WebSocket── Ma
 | GitHub 프로그레스바 (이슈/커밋 기반 난이도) | Done |
 | 마지막 이슈/커밋 표시 | Done |
 
-### P2 (예정)
+### P2 (진행중)
 | 기능 | 상태 |
 |------|------|
+| Edge 저장 (localStorage) | Done |
 | Edge 저장 (Supabase 연동) | Pending |
-| GitHub API 실시간 연동 | Pending |
+| GitHub API 실시간 연동 | Done |
 | Health Check 서비스 | Pending |
 | 실시간 업데이트 (WebSocket) | Pending |
 

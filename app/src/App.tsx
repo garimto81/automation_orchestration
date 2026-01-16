@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useEffect } from 'react'
 import {
   ReactFlow,
   Background,
@@ -19,6 +19,7 @@ import { Header, Sidebar, DetailPanel } from '@/components/layout'
 import { nodeTypes } from '@/components/nodes'
 import { projects, getProjectSummary, initialNodes, initialEdges } from '@/data'
 import { useUIStore } from '@/stores'
+import { edgeService } from '@/services/supabase'
 
 export default function App() {
   const {
@@ -39,6 +40,24 @@ export default function App() {
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes as Node[])
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
+
+  // 초기 Edge 로드 (localStorage 우선, 없으면 initialEdges 저장)
+  useEffect(() => {
+    const loadEdges = async () => {
+      const savedEdges = await edgeService.fetchEdges()
+      if (savedEdges.length > 0) {
+        setEdges(savedEdges)
+        console.log('[App] Loaded edges from storage:', savedEdges.length)
+      } else {
+        // localStorage가 비어있으면 initialEdges 저장
+        console.log('[App] No saved edges, initializing with defaults:', initialEdges.length)
+        for (const edge of initialEdges) {
+          await edgeService.saveEdge(edge)
+        }
+      }
+    }
+    loadEdges()
+  }, [setEdges])
 
   // Update node selection state
   const nodesWithSelection = useMemo(
@@ -82,14 +101,32 @@ export default function App() {
       animated: true,
       style: { stroke: '#000', strokeWidth: 2 },
     }, eds))
-    // TODO: Supabase에 저장
-    console.log('Edge connected:', params)
+
+    // localStorage/Supabase에 저장
+    const newEdge = {
+      id: `${params.source}-${params.target}`,
+      source: params.source,
+      target: params.target,
+      sourceHandle: params.sourceHandle ?? undefined,
+      targetHandle: params.targetHandle ?? undefined,
+      type: 'default',
+      animated: true,
+      style: { stroke: '#000', strokeWidth: 2 },
+    }
+
+    // localStorage/Supabase에 저장
+    edgeService.saveEdge(newEdge).catch(err => {
+      console.error('[App] Failed to save edge:', err)
+    })
   }, [setEdges])
 
   // Edge 삭제 핸들러
   const onEdgesDelete: OnEdgesDelete = useCallback((deletedEdges) => {
-    // TODO: Supabase에서 삭제
-    console.log('Edges deleted:', deletedEdges)
+    deletedEdges.forEach(edge => {
+      edgeService.deleteEdge(edge.id).catch(err => {
+        console.error('[App] Failed to delete edge:', err)
+      })
+    })
   }, [])
 
   return (

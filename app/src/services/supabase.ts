@@ -89,8 +89,11 @@ export const edgeService = {
    */
   async fetchEdges(): Promise<AppEdge[]> {
     if (isMockMode) {
-      console.warn('[EdgeService] Mock mode - returning empty array')
-      return []
+      // Mock 모드에서는 localStorage 사용
+      const { localStorageService } = await import('./localStorage')
+      const edges = localStorageService.getEdges()
+      console.log('[EdgeService] Mock mode - loaded from localStorage:', edges.length)
+      return edges
     }
 
     const client = await getClient()
@@ -114,7 +117,10 @@ export const edgeService = {
    */
   async saveEdge(edge: AppEdge): Promise<void> {
     if (isMockMode) {
-      console.warn('[EdgeService] Mock mode - edge not saved:', edge.id)
+      // Mock 모드에서는 localStorage 사용
+      const { localStorageService } = await import('./localStorage')
+      localStorageService.upsertEdge(edge)
+      console.log('[EdgeService] Mock mode - edge saved to localStorage:', edge.id)
       return
     }
 
@@ -137,7 +143,10 @@ export const edgeService = {
    */
   async deleteEdge(edgeId: string): Promise<void> {
     if (isMockMode) {
-      console.warn('[EdgeService] Mock mode - edge not deleted:', edgeId)
+      // Mock 모드에서는 localStorage 사용
+      const { localStorageService } = await import('./localStorage')
+      localStorageService.deleteEdge(edgeId)
+      console.log('[EdgeService] Mock mode - edge deleted from localStorage:', edgeId)
       return
     }
 
