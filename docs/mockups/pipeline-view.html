@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GFX Pipeline - 6-Module Architecture</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #334155;
+    }
+
+    .title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+
+    .legend {
+      display: flex;
+      gap: 16px;
+      font-size: 12px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .pipeline-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 32px 0;
+      position: relative;
+    }
+
+    /* 연결선 */
+    .pipeline-container::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 80px;
+      right: 80px;
+      height: 3px;
+      background: linear-gradient(90deg,
+        #3b82f6 0%,
+        #8b5cf6 20%,
+        #10b981 40%,
+        #f59e0b 60%,
+        #ef4444 80%,
+        #ef4444 100%
+      );
+      z-index: 0;
+    }
+
+    .module {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 1;
+      flex: 1;
+      max-width: 160px;
+    }
+
+    .module-card {
+      background: #1e293b;
+      border: 2px solid;
+      border-radius: 12px;
+      padding: 16px;
+      width: 140px;
+      text-align: center;
+      position: relative;
+    }
+
+    .module-card::after {
+      content: '';
+      position: absolute;
+      bottom: -24px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 2px;
+      height: 20px;
+      background: currentColor;
+    }
+
+    .module-number {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      opacity: 0.8;
+    }
+
+    .module-name {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .module-desc {
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.4;
+    }
+
+    .module-progress {
+      margin-top: 12px;
+      background: #0f172a;
+      border-radius: 4px;
+      height: 6px;
+      overflow: hidden;
+    }
+
+    .module-progress-bar {
+      height: 100%;
+      border-radius: 4px;
+    }
+
+    .module-percent {
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 6px;
+    }
+
+    .project-tag {
+      margin-top: 16px;
+      padding: 6px 10px;
+      background: #0f172a;
+      border-radius: 6px;
+      font-size: 10px;
+      color: #94a3b8;
+      border: 1px solid #334155;
+    }
+
+    /* Module Colors */
+    .module-1 .module-card { border-color: #3b82f6; color: #3b82f6; }
+    .module-1 .module-progress-bar { background: #3b82f6; }
+
+    .module-2 .module-card { border-color: #8b5cf6; color: #8b5cf6; }
+    .module-2 .module-progress-bar { background: #8b5cf6; }
+
+    .module-3 .module-card { border-color: #10b981; color: #10b981; }
+    .module-3 .module-progress-bar { background: #10b981; }
+
+    .module-4 .module-card { border-color: #f59e0b; color: #f59e0b; }
+    .module-4 .module-progress-bar { background: #f59e0b; }
+
+    .module-5 .module-card { border-color: #f97316; color: #f97316; }
+    .module-5 .module-progress-bar { background: #f97316; }
+
+    .module-6 .module-card { border-color: #ef4444; color: #ef4444; }
+    .module-6 .module-progress-bar { background: #ef4444; }
+
+    /* Data Flow Section */
+    .data-flow {
+      margin-top: 48px;
+      padding: 24px;
+      background: #1e293b;
+      border-radius: 12px;
+      border: 1px solid #334155;
+    }
+
+    .data-flow-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #f8fafc;
+    }
+
+    .flow-items {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .flow-item {
+      flex: 1;
+      padding: 12px;
+      background: #0f172a;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .flow-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .flow-label {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    .flow-arrow {
+      display: flex;
+      align-items: center;
+      color: #475569;
+      font-size: 20px;
+    }
+
+    /* Stats */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .stat-card {
+      background: #1e293b;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      border: 1px solid #334155;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="title">GFX Pipeline Architecture</div>
+      <div class="subtitle">WSOP 포커 방송 자동화 - 6-Module Pipeline</div>
+    </div>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #22c55e;"></div>
+        <span>Active</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #f59e0b;"></div>
+        <span>In Progress</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #64748b;"></div>
+        <span>Planned</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="pipeline-container">
+    <!-- Module 1: GFX Simulator -->
+    <div class="module module-1">
+      <div class="module-card">
+        <div class="module-number">Module 1</div>
+        <div class="module-name">GFX Simulator</div>
+        <div class="module-desc">RFID 핸드 감지 + AI 분석</div>
+        <div class="module-progress">
+          <div class="module-progress-bar" style="width: 82%;"></div>
+        </div>
+        <div class="module-percent">82%</div>
+      </div>
+      <div class="project-tag">automation_feature_table</div>
+    </div>
+
+    <!-- Module 2: NAS Sync -->
+    <div class="module module-2">
+      <div class="module-card">
+        <div class="module-number">Module 2</div>
+        <div class="module-name">NAS Sync</div>
+        <div class="module-desc">GFX JSON → Supabase</div>
+        <div class="module-progress">
+          <div class="module-progress-bar" style="width: 100%;"></div>
+        </div>
+        <div class="module-percent">100%</div>
+      </div>
+      <div class="project-tag">gfx_json</div>
+    </div>
+
+    <!-- Module 3: Supabase DB -->
+    <div class="module module-3">
+      <div class="module-card">
+        <div class="module-number">Module 3</div>
+        <div class="module-name">Supabase DB</div>
+        <div class="module-desc">6개 스키마, 22 마이그레이션</div>
+        <div class="module-progress">
+          <div class="module-progress-bar" style="width: 85%;"></div>
+        </div>
+        <div class="module-percent">85%</div>
+      </div>
+      <div class="project-tag">automation_schema</div>
+    </div>
+
+    <!-- Module 4: Main Dashboard -->
+    <div class="module module-4">
+      <div class="module-card">
+        <div class="module-number">Module 4</div>
+        <div class="module-name">Main Dash</div>
+        <div class="module-desc">연출 의사결정 (What/When)</div>
+        <div class="module-progress">
+          <div class="module-progress-bar" style="width: 50%;"></div>
+        </div>
+        <div class="module-percent">50%</div>
+      </div>
+      <div class="project-tag">automation_dashboard</div>
+    </div>
+
+    <!-- Module 5: Sub Dashboard -->
+    <div class="module module-5">
+      <div class="module-card">
+        <div class="module-number">Module 5</div>
+        <div class="module-name">Sub Dash</div>
+        <div class="module-desc">AE 렌더링 서버</div>
+        <div class="module-progress">
+          <div class="module-progress-bar" style="width: 92%;"></div>
+        </div>
+        <div class="module-percent">92%</div>
+      </div>
+      <div class="project-tag">automation_ae</div>
+    </div>
+
+    <!-- Module 6: AE-Nexrender -->
+    <div class="module module-6">
+      <div class="module-card">
+        <div class="module-number">Module 6</div>
+        <div class="module-name">AE-Nexrender</div>
+        <div class="module-desc">Supabase 폴링 Worker</div>
+        <div class="module-progress">
+          <div class="module-progress-bar" style="width: 78%;"></div>
+        </div>
+        <div class="module-percent">78%</div>
+      </div>
+      <div class="project-tag">ae_nexrender_module</div>
+    </div>
+  </div>
+
+  <div class="data-flow">
+    <div class="data-flow-title">Data Flow</div>
+    <div class="flow-items">
+      <div class="flow-item">
+        <div class="flow-icon">🎰</div>
+        <div class="flow-label">PokerGFX RFID</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-item">
+        <div class="flow-icon">📁</div>
+        <div class="flow-label">NAS JSON</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-item">
+        <div class="flow-icon">🗄️</div>
+        <div class="flow-label">Supabase</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-item">
+        <div class="flow-icon">📊</div>
+        <div class="flow-label">Dashboard</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-item">
+        <div class="flow-icon">🎬</div>
+        <div class="flow-label">After Effects</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-item">
+        <div class="flow-icon">📺</div>
+        <div class="flow-label">방송 출력</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-value">10</div>
+      <div class="stat-label">Total Projects</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">81%</div>
+      <div class="stat-label">Avg Progress</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">6</div>
+      <div class="stat-label">DB Schemas</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">30</div>
+      <div class="stat-label">Tables</div>
+    </div>
+  </div>
+</body>
+</html>
