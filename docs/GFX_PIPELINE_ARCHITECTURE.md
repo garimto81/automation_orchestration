@@ -278,12 +278,21 @@ PokerGFX 데이터를 수집하여 After Effects 자막으로 자동 변환하�
 | 프로젝트 | 모듈 | 역할 | 상태 |
 |---------|------|------|------|
 | automation_feature_table | Module 1 | GFX 시뮬레이터 | ✅ 완료 |
-| automation_hub | Module 2, 3 | NAS Sync, Supabase 스키마 | 🔄 개발중 |
-| (신규) | Module 4 | Main Dashboard | 🔄 개발중 |
-| (신규) | Module 5 | Sub Dashboard | 🔄 개발중 |
-| automation_ae | Module 6 | AE-Nexrender | 🔄 개발중 |
+| automation_hub + gfx_json | Module 2 | GFX-NAS-Supabase Sync | 🔄 개발중 |
+| automation_schema | Module 3 | Supabase DB Schema | 🔄 개발중 |
+| automation_dashboard (Main) | Module 4 | Main Dashboard | 🔄 개발중 |
+| automation_dashboard (Sub) | Module 5 | Sub Dashboard | 🔄 개발중 |
+| automation_ae + ae_nexrender_module | Module 6 | AE-Nexrender | 🔄 개발중 |
 | automation_orchestration | - | 전체 문서/모니터링 | 📄 문서화 |
-| automation_aep | - | AEP 템플릿 분석 | ✅ 완료 |
+| automation_sub | - | PRD 관리 | ✅ 활성 |
+| automation_ae_switcher | - | AE 모드 전환 (PRD) | 📋 PRD만 |
+
+### 연관 프로젝트
+
+| 프로젝트 | 위치 | 역할 | 연관 모듈 |
+|---------|------|------|---------|
+| ae_nexrender_module | C:\claude\ae_nexrender_module | 렌더링 Worker 실행기 | Module 6 |
+| gfx_json | C:\claude\gfx_json | JSON 파싱/동기화 | Module 2 |
 
 ---
 
