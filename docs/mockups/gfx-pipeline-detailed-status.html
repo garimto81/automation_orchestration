@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GFX Pipeline - 상세 개발 현황</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #fff;
+            padding: 30px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #333;
+        }
+        .header h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .header .subtitle {
+            font-size: 13px;
+            color: #666;
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-bottom: 30px;
+            padding: 12px;
+            border: 1px solid #ccc;
+            background: #fafafa;
+            font-size: 12px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .legend-box {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #333;
+        }
+        .legend-box.completed { background: #333; }
+        .legend-box.in-progress { background: repeating-linear-gradient(45deg, #fff, #fff 2px, #333 2px, #333 4px); }
+        .legend-box.waiting { background: #fff; }
+
+        /* Main Layout */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        /* Section */
+        .section {
+            border: 2px solid #333;
+            padding: 20px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ccc;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-badge {
+            font-size: 11px;
+            padding: 3px 8px;
+            border: 1px solid #333;
+            background: #f5f5f5;
+        }
+
+        /* Module Box */
+        .module-box {
+            border: 2px solid #333;
+            margin-bottom: 15px;
+        }
+        .module-header {
+            background: #333;
+            color: #fff;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        .module-header.in-progress {
+            background: repeating-linear-gradient(45deg, #666, #666 3px, #333 3px, #333 6px);
+        }
+        .module-header.waiting {
+            background: #fff;
+            color: #333;
+            border-bottom: 2px solid #333;
+        }
+        .module-content {
+            padding: 12px;
+        }
+
+        /* Schema Grid */
+        .schema-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .schema-node {
+            border: 1px solid #333;
+            padding: 10px;
+            font-size: 11px;
+        }
+        .schema-node-title {
+            font-weight: bold;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+        .schema-node-tables {
+            color: #666;
+            font-size: 10px;
+            line-height: 1.4;
+        }
+
+        /* Connection Lines */
+        .connections {
+            padding: 10px;
+            background: #f9f9f9;
+            border: 1px dashed #999;
+            font-size: 11px;
+        }
+        .connection-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        .connection-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+            font-family: monospace;
+        }
+        .conn-arrow {
+            color: #666;
+        }
+
+        /* Task List */
+        .task-list {
+            list-style: none;
+        }
+        .task-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 12px;
+        }
+        .task-item:last-child {
+            border-bottom: none;
+        }
+        .task-number {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .task-status {
+            font-size: 10px;
+            padding: 2px 6px;
+            border: 1px solid;
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+        .task-status.done {
+            background: #333;
+            color: #fff;
+            border-color: #333;
+        }
+        .task-status.doing {
+            background: repeating-linear-gradient(45deg, #fff, #fff 2px, #ccc 2px, #ccc 4px);
+            border-color: #333;
+        }
+        .task-status.wait {
+            background: #fff;
+            border-color: #999;
+            color: #666;
+        }
+
+        /* Flow Diagram */
+        .flow-diagram {
+            margin-top: 30px;
+            border: 2px solid #333;
+            padding: 20px;
+        }
+        .flow-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .flow-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .flow-node {
+            border: 2px solid #333;
+            padding: 12px 16px;
+            text-align: center;
+            min-width: 140px;
+        }
+        .flow-node.completed {
+            background: #333;
+            color: #fff;
+        }
+        .flow-node.in-progress {
+            background: repeating-linear-gradient(45deg, #fff, #fff 3px, #e0e0e0 3px, #e0e0e0 6px);
+        }
+        .flow-node.waiting {
+            background: #fff;
+            border-style: dashed;
+        }
+        .flow-node-title {
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .flow-node-sub {
+            font-size: 10px;
+            color: #666;
+            margin-top: 4px;
+        }
+        .flow-node.completed .flow-node-sub {
+            color: #ccc;
+        }
+        .flow-arrow {
+            font-size: 20px;
+            color: #333;
+        }
+        .flow-arrow-down {
+            text-align: center;
+            font-size: 20px;
+            color: #333;
+        }
+        .flow-label {
+            font-size: 10px;
+            color: #666;
+            padding: 2px 6px;
+            border: 1px dashed #999;
+            background: #fff;
+        }
+
+        /* Branch */
+        .flow-branch {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 10px;
+        }
+        .branch-line {
+            width: 2px;
+            height: 20px;
+            background: #333;
+            margin: 0 auto;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 20px;
+            text-align: right;
+            font-size: 10px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>GFX Pipeline - 상세 개발 현황</h1>
+            <div class="subtitle">Module 3 (DB Schema) & Module 4-5 (Dashboards) Detail Status</div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-box completed"></div>
+                <span>완료</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box in-progress"></div>
+                <span>진행중</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box waiting"></div>
+                <span>대기중</span>
+            </div>
+        </div>
+
+        <!-- Main Layout -->
+        <div class="main-layout">
+            <!-- Left: DB Schema Detail -->
+            <div class="section">
+                <div class="section-title">
+                    <span>Module 3: Supabase DB Schema</span>
+                    <span class="section-badge">무결성 검증 진행중</span>
+                </div>
+
+                <!-- Schema Grid -->
+                <div class="schema-grid">
+                    <div class="schema-node">
+                        <div class="schema-node-title">json (GFX Schema)</div>
+                        <div class="schema-node-tables">
+                            • gfx_sessions<br>
+                            • hands<br>
+                            • hand_players<br>
+                            • hand_actions<br>
+                            • hand_cards<br>
+                            • hand_results
+                        </div>
+                    </div>
+                    <div class="schema-node">
+                        <div class="schema-node-title">wsop_plus (WSOP+ Schema)</div>
+                        <div class="schema-node-tables">
+                            • tournaments<br>
+                            • blind_levels<br>
+                            • payouts<br>
+                            • official_players
+                        </div>
+                    </div>
+                    <div class="schema-node">
+                        <div class="schema-node-title">manual (Dashboard Schema)</div>
+                        <div class="schema-node-tables">
+                            • players_master<br>
+                            • player_profiles<br>
+                            • commentators<br>
+                            • venues
+                        </div>
+                    </div>
+                    <div class="schema-node">
+                        <div class="schema-node-title">ae (AE Schema)</div>
+                        <div class="schema-node-tables">
+                            • templates<br>
+                            • compositions<br>
+                            • comp_layers<br>
+                            • render_jobs<br>
+                            • render_outputs
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Schema Connections -->
+                <div class="connections">
+                    <div class="connection-title">스키마 연결 관계 (Node Connections)</div>
+                    <div class="connection-item">
+                        <span>json.gfx_sessions</span>
+                        <span class="conn-arrow">→</span>
+                        <span>unified_events (VIEW)</span>
+                    </div>
+                    <div class="connection-item">
+                        <span>wsop_plus.tournaments</span>
+                        <span class="conn-arrow">→</span>
+                        <span>unified_events (VIEW)</span>
+                    </div>
+                    <div class="connection-item">
+                        <span>json.hand_players</span>
+                        <span class="conn-arrow">→</span>
+                        <span>unified_players (VIEW)</span>
+                    </div>
+                    <div class="connection-item">
+                        <span>manual.players_master</span>
+                        <span class="conn-arrow">→</span>
+                        <span>unified_players (VIEW)</span>
+                    </div>
+                    <div class="connection-item">
+                        <span>ae.render_jobs</span>
+                        <span class="conn-arrow">←</span>
+                        <span>cuesheet.cue_items (FK)</span>
+                    </div>
+                </div>
+
+                <!-- Task List for DB -->
+                <div class="module-box" style="margin-top: 15px;">
+                    <div class="module-header in-progress">현재 작업 내역</div>
+                    <div class="module-content">
+                        <ul class="task-list">
+                            <li class="task-item">
+                                <span class="task-number">1</span>
+                                <span>GFX JSON → Supabase 매핑 검증</span>
+                                <span class="task-status done">완료</span>
+                            </li>
+                            <li class="task-item">
+                                <span class="task-number">2</span>
+                                <span>통합 VIEW (unified_*) 무결성 검증</span>
+                                <span class="task-status doing">진행</span>
+                            </li>
+                            <li class="task-item">
+                                <span class="task-number">3</span>
+                                <span>FK 관계 일관성 검사</span>
+                                <span class="task-status doing">진행</span>
+                            </li>
+                            <li class="task-item">
+                                <span class="task-number">4</span>
+                                <span>RLS 정책 적용 검토</span>
+                                <span class="task-status wait">대기</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Dashboard Detail -->
+            <div class="section">
+                <div class="section-title">
+                    <span>Module 4-5: Dashboards</span>
+                    <span class="section-badge">설계 진행중</span>
+                </div>
+
+                <!-- Main Dashboard -->
+                <div class="module-box">
+                    <div class="module-header in-progress">Module 4: Main Dashboard</div>
+                    <div class="module-content">
+                        <ul class="task-list">
+                            <li class="task-item">
+                                <span class="task-number">1</span>
+                                <span>UI 레이아웃 구현 (Zed)</span>
+                                <span class="task-status doing">진행</span>
+                            </li>
+                            <li class="task-item">
+                                <span class="task-number">2</span>
+                                <span>Cuesheet 편집 기능</span>
+                                <span class="task-status wait">대기</span>
+                            </li>
+                            <li class="task-item">
+                                <span class="task-number">3</span>
+                                <span>Realtime 연동</span>
+                                <span class="task-status wait">대기</span>
+                            </li>
+                        </ul>
+                        <div style="margin-top: 10px; padding: 8px; background: #f5f5f5; font-size: 11px; border: 1px solid #ddd;">
+                            <strong>역할:</strong> Editorial 결정 (What/When)<br>
+                            <strong>사용자:</strong> Director/PD
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sub Dashboard -->
+                <div class="module-box">
+                    <div class="module-header in-progress">Module 5: Sub Dashboard</div>
+                    <div class="module-content">
+                        <ul class="task-list">
+                            <li class="task-item">
+                                <span class="task-number">1</span>
+                                <span>워크플로우 설계</span>
+                                <span class="task-status doing">진행</span>
+                            </li>
+                            <li class="task-item">
+                                <span class="task-number">2</span>
+                                <span>Cuesheet 기반 시간 선택 UI 설계</span>
+                                <span class="task-status doing">진행</span>
+                            </li>
+                            <li class="task-item">
+                                <span class="task-number">3</span>
+                                <span>직관적 UX 최적화 설계</span>
+                                <span class="task-status doing">진행</span>
+                            </li>
+                            <li class="task-item">
+                                <span class="task-number">4</span>
+                                <span>DB 선행 작업 대기</span>
+                                <span class="task-status wait">대기</span>
+                            </li>
+                        </ul>
+                        <div style="margin-top: 10px; padding: 8px; background: #f5f5f5; font-size: 11px; border: 1px solid #ddd;">
+                            <strong>역할:</strong> Caption 출력 실행 (How)<br>
+                            <strong>사용자:</strong> Caption Operator
+                        </div>
+                    </div>
+                </div>
+
+                <!-- UX Design Notes -->
+                <div class="connections" style="margin-top: 15px;">
+                    <div class="connection-title">Sub Dashboard UX 설계 방향</div>
+                    <div style="font-size: 11px; line-height: 1.6;">
+                        <strong>1. Cuesheet 시간 선택:</strong><br>
+                        &nbsp;&nbsp;• 타임라인 기반 시각적 선택<br>
+                        &nbsp;&nbsp;• 클릭으로 즉시 렌더링 트리거<br>
+                        <strong>2. UX 최적화:</strong><br>
+                        &nbsp;&nbsp;• 최소 클릭으로 작업 완료<br>
+                        &nbsp;&nbsp;• 실시간 미리보기 제공
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flow Diagram -->
+        <div class="flow-diagram">
+            <div class="flow-title">데이터 흐름 및 의존성</div>
+
+            <div class="flow-row">
+                <div class="flow-node completed">
+                    <div class="flow-node-title">GFX Simulator</div>
+                    <div class="flow-node-sub">Module 1 ✓</div>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-node completed">
+                    <div class="flow-node-title">NAS-Supabase Sync</div>
+                    <div class="flow-node-sub">Module 2 ✓</div>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-node in-progress">
+                    <div class="flow-node-title">DB Schema</div>
+                    <div class="flow-node-sub">Module 3 (검증중)</div>
+                </div>
+            </div>
+
+            <div class="flow-arrow-down">↓</div>
+            <div style="text-align: center; margin-bottom: 10px;">
+                <span class="flow-label">Realtime Subscription</span>
+            </div>
+
+            <div class="flow-branch">
+                <div>
+                    <div class="flow-node in-progress">
+                        <div class="flow-node-title">Main Dashboard</div>
+                        <div class="flow-node-sub">Module 4 (UI 작업중)</div>
+                    </div>
+                </div>
+                <div>
+                    <div class="flow-node in-progress">
+                        <div class="flow-node-title">Sub Dashboard</div>
+                        <div class="flow-node-sub">Module 5 (설계중)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-arrow-down">↓</div>
+            <div style="text-align: center; margin-bottom: 10px;">
+                <span class="flow-label">render_jobs</span>
+            </div>
+
+            <div class="flow-row">
+                <div class="flow-node waiting">
+                    <div class="flow-node-title">AE-Nexrender</div>
+                    <div class="flow-node-sub">Module 6 (POC 완료, 대기)</div>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div style="border: 2px solid #333; padding: 12px 20px; background: #f5f5f5;">
+                    <div style="font-weight: bold; font-size: 12px;">Output</div>
+                    <div style="font-size: 10px; color: #666;">Video/Image</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            Last Updated: 2026-01-20 | automation_orchestration
+        </div>
+    </div>
+</body>
+</html>

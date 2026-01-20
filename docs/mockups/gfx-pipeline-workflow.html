@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GFX Pipeline - 통합 워크플로우</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: #fff;
+            padding: 30px 40px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #333;
+        }
+        .header h1 { font-size: 22px; color: #333; }
+        .header .subtitle { font-size: 11px; color: #666; margin-top: 4px; }
+
+        /* Flow container */
+        .flow { display: flex; flex-direction: column; align-items: center; gap: 0; }
+
+        /* Node styles */
+        .node {
+            border: 2px solid #333;
+            background: #fff;
+            width: 280px;
+        }
+        .node.wide { width: 700px; }
+        .node.medium { width: 320px; }
+        .node.completed { background: #333; color: #fff; }
+        .node.in-progress { background: repeating-linear-gradient(45deg, #fff, #fff 4px, #e8e8e8 4px, #e8e8e8 8px); }
+        .node.waiting { border-style: dashed; }
+
+        .node-header {
+            padding: 6px 10px;
+            border-bottom: 1px solid #333;
+            font-weight: bold;
+            font-size: 11px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .node.completed .node-header { border-bottom-color: #555; }
+
+        .node-title { font-size: 14px; font-weight: bold; padding: 8px 10px 4px; }
+        .node-content { padding: 6px 10px 10px; font-size: 11px; }
+        .node-status {
+            font-size: 9px;
+            padding: 2px 6px;
+            border: 1px solid;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+        }
+
+        /* Arrow connector */
+        .arrow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 0;
+        }
+        .arrow-line { width: 2px; height: 25px; background: #333; }
+        .arrow-head {
+            width: 0; height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 8px solid #333;
+        }
+        .arrow-label {
+            font-size: 9px;
+            color: #666;
+            padding: 2px 6px;
+            border: 1px dashed #999;
+            background: #fff;
+            margin-top: 4px;
+        }
+
+        /* Branch connector */
+        .branch {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+        .branch-line-v { width: 2px; height: 15px; background: #333; }
+        .branch-line-h { height: 2px; background: #333; }
+        .branch-split {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 60px;
+            position: relative;
+        }
+        .branch-split::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 380px;
+            height: 2px;
+            background: #333;
+        }
+        .branch-arm {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Merge connector */
+        .merge {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+        .merge-split {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            position: relative;
+        }
+        .merge-split::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 380px;
+            height: 2px;
+            background: #333;
+        }
+
+        /* Schema grid */
+        .schema-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .schema-box {
+            border: 1px solid #333;
+            padding: 6px 8px;
+            font-size: 9px;
+            background: #fff;
+        }
+        .schema-title { font-weight: bold; margin-bottom: 3px; font-size: 10px; }
+        .schema-tables { color: #666; line-height: 1.4; }
+
+        /* Unified views */
+        .unified-box {
+            border: 2px dashed #666;
+            padding: 8px;
+            background: #fafafa;
+            margin-bottom: 12px;
+        }
+        .unified-title { font-size: 10px; font-weight: bold; margin-bottom: 6px; text-align: center; }
+        .unified-items { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+        .unified-item {
+            border: 1px solid #333;
+            padding: 3px 8px;
+            font-size: 9px;
+            background: #fff;
+        }
+
+        /* Task list */
+        .task-list { margin-top: 8px; }
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 0;
+            font-size: 10px;
+        }
+        .task-dot { width: 8px; height: 8px; border: 1px solid #333; border-radius: 50%; flex-shrink: 0; }
+        .task-dot.done { background: #333; }
+        .task-dot.doing { background: repeating-linear-gradient(45deg, #fff, #fff 2px, #999 2px, #999 4px); }
+
+        /* Role box */
+        .role-box {
+            background: #f5f5f5;
+            padding: 5px 8px;
+            margin-bottom: 8px;
+            font-size: 10px;
+            border: 1px solid #ddd;
+        }
+
+        /* Current tasks box */
+        .current-tasks {
+            border: 1px solid #ddd;
+            padding: 8px;
+            background: #fff;
+        }
+        .current-tasks-title { font-size: 10px; font-weight: bold; margin-bottom: 6px; }
+
+        /* Internal flow */
+        .internal-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 8px;
+        }
+        .internal-node {
+            border: 1px solid #333;
+            padding: 6px 12px;
+            font-size: 9px;
+            text-align: center;
+            line-height: 1.3;
+        }
+        .internal-arrow { color: #333; font-size: 14px; }
+
+        /* Side by side */
+        .side-by-side {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+        }
+
+        /* Cuesheet node */
+        .cuesheet-node {
+            border: 2px solid #666;
+            width: 260px;
+        }
+        .cuesheet-node .node-header {
+            background: #666;
+            color: #fff;
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>GFX Pipeline - 통합 워크플로우 현황</h1>
+            <div class="subtitle">Node Connection Workflow Diagram</div>
+        </div>
+
+        <div class="flow">
+            <!-- M1: GFX Simulator -->
+            <div class="node completed">
+                <div class="node-header">
+                    <span>M1</span>
+                    <span class="node-status" style="background:#333;color:#fff;border-color:#333;">● 완료</span>
+                </div>
+                <div class="node-title">GFX Simulator</div>
+                <div class="node-content">
+                    <div style="color:#aaa;">automation_feature_table</div>
+                </div>
+            </div>
+
+            <!-- Arrow -->
+            <div class="arrow">
+                <div class="arrow-line"></div>
+                <div class="arrow-head"></div>
+                <span class="arrow-label">JSON Files</span>
+            </div>
+
+            <!-- M2: NAS-Supabase Sync -->
+            <div class="node completed">
+                <div class="node-header">
+                    <span>M2</span>
+                    <span class="node-status" style="background:#333;color:#fff;border-color:#333;">● 완료</span>
+                </div>
+                <div class="node-title">NAS-Supabase Sync</div>
+                <div class="node-content">
+                    <div style="color:#aaa;">automation_hub · 자동 연동</div>
+                </div>
+            </div>
+
+            <!-- Arrow -->
+            <div class="arrow">
+                <div class="arrow-line"></div>
+                <div class="arrow-head"></div>
+                <span class="arrow-label">INSERT</span>
+            </div>
+
+            <!-- M3: Supabase DB Schema -->
+            <div class="node in-progress wide">
+                <div class="node-header">
+                    <span>M3 - SUPABASE DB SCHEMA</span>
+                    <span class="node-status">◐ 무결성 검증중</span>
+                </div>
+                <div style="padding: 12px;">
+                    <!-- Schema Grid -->
+                    <div class="schema-grid">
+                        <div class="schema-box">
+                            <div class="schema-title">json</div>
+                            <div class="schema-tables">gfx_sessions · hands · hand_players · hand_actions · hand_cards · hand_results</div>
+                        </div>
+                        <div class="schema-box">
+                            <div class="schema-title">wsop_plus</div>
+                            <div class="schema-tables">tournaments · blind_levels · payouts · official_players</div>
+                        </div>
+                        <div class="schema-box">
+                            <div class="schema-title">manual</div>
+                            <div class="schema-tables">players_master · player_profiles · commentators · venues</div>
+                        </div>
+                        <div class="schema-box">
+                            <div class="schema-title">ae</div>
+                            <div class="schema-tables">templates · compositions · comp_layers · render_jobs · render_outputs</div>
+                        </div>
+                    </div>
+
+                    <!-- Unified Views -->
+                    <div class="unified-box">
+                        <div class="unified-title">UNIFIED VIEWS</div>
+                        <div class="unified-items">
+                            <div class="unified-item">unified_players</div>
+                            <div class="unified-item">unified_events</div>
+                            <div class="unified-item">unified_chip_data</div>
+                        </div>
+                    </div>
+
+                    <!-- Current Tasks -->
+                    <div class="current-tasks">
+                        <div class="current-tasks-title">현재 작업</div>
+                        <div class="task-item"><span class="task-dot done"></span>GFX JSON → Supabase 매핑 검증</div>
+                        <div class="task-item"><span class="task-dot doing"></span>통합 VIEW 무결성 검증</div>
+                        <div class="task-item"><span class="task-dot doing"></span>FK 관계 일관성 검사</div>
+                        <div class="task-item"><span class="task-dot"></span>RLS 정책 적용</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Branch to M4 & M5 -->
+            <div class="branch">
+                <div class="branch-line-v"></div>
+                <span class="arrow-label" style="margin: 4px 0;">Realtime Subscription</span>
+                <div class="branch-line-v"></div>
+                <div class="branch-split">
+                    <div class="branch-arm">
+                        <div class="branch-line-v"></div>
+                        <div class="arrow-head"></div>
+                    </div>
+                    <div class="branch-arm">
+                        <div class="branch-line-v"></div>
+                        <div class="arrow-head"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- M4 & M5 Side by Side -->
+            <div class="side-by-side">
+                <!-- M4: Main Dashboard -->
+                <div class="node in-progress medium">
+                    <div class="node-header">
+                        <span>M4</span>
+                        <span class="node-status">◐ 진행중</span>
+                    </div>
+                    <div class="node-title">Main Dashboard</div>
+                    <div class="node-content">
+                        <div class="role-box">
+                            <strong>역할:</strong> Editorial (What/When)<br>
+                            <strong>사용자:</strong> Director/PD
+                        </div>
+                        <div class="task-list">
+                            <div class="task-item"><span class="task-dot doing"></span>UI 레이아웃 (Zed)</div>
+                            <div class="task-item"><span class="task-dot"></span>Cuesheet 편집 기능</div>
+                            <div class="task-item"><span class="task-dot"></span>Realtime 연동</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- M5: Sub Dashboard -->
+                <div class="node in-progress medium">
+                    <div class="node-header">
+                        <span>M5</span>
+                        <span class="node-status">◐ 설계중</span>
+                    </div>
+                    <div class="node-title">Sub Dashboard</div>
+                    <div class="node-content">
+                        <div class="role-box">
+                            <strong>역할:</strong> Caption 실행 (How)<br>
+                            <strong>사용자:</strong> Operator
+                        </div>
+                        <div class="task-list">
+                            <div class="task-item"><span class="task-dot doing"></span>워크플로우 설계</div>
+                            <div class="task-item"><span class="task-dot doing"></span>Cuesheet 시간 선택 UI</div>
+                            <div class="task-item"><span class="task-dot doing"></span>직관적 UX 최적화</div>
+                            <div class="task-item"><span class="task-dot"></span>DB 선행 작업 대기</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Merge to Cuesheet -->
+            <div class="merge">
+                <div class="merge-split">
+                    <div class="branch-arm">
+                        <div class="branch-line-v" style="height: 20px;"></div>
+                        <span class="arrow-label" style="font-size:8px;">Cuesheet Edit</span>
+                    </div>
+                    <div class="branch-arm">
+                        <div class="branch-line-v" style="height: 20px;"></div>
+                        <span class="arrow-label" style="font-size:8px;">Render Trigger</span>
+                    </div>
+                </div>
+                <div class="branch-line-v" style="height: 15px;"></div>
+                <div class="arrow-head"></div>
+            </div>
+
+            <!-- Cuesheet -->
+            <div class="cuesheet-node">
+                <div class="node-header">
+                    <span>cuesheet schema</span>
+                </div>
+                <div class="node-content">
+                    <div style="font-size: 10px; color: #666;">
+                        broadcast_sessions · cue_sheets · cue_items
+                    </div>
+                </div>
+            </div>
+
+            <!-- Arrow -->
+            <div class="arrow">
+                <div class="arrow-line"></div>
+                <div class="arrow-head"></div>
+                <span class="arrow-label">render_jobs</span>
+            </div>
+
+            <!-- M6: AE-Nexrender -->
+            <div class="node waiting wide">
+                <div class="node-header">
+                    <span>M6 - AE-NEXRENDER</span>
+                    <span class="node-status">○ POC 완료 (대기중)</span>
+                </div>
+                <div class="node-content">
+                    <div style="color:#666;margin-bottom:8px;text-align:center;">automation_ae</div>
+                    <div class="internal-flow">
+                        <div class="internal-node">Queue<br>Manager</div>
+                        <span class="internal-arrow">→</span>
+                        <div class="internal-node">Worker<br>Node</div>
+                        <span class="internal-arrow">→</span>
+                        <div class="internal-node">Render<br>Engine (AE)</div>
+                        <span class="internal-arrow">→</span>
+                        <div class="internal-node" style="background:#f0f0f0;font-weight:bold;">Output<br>(Video/Image)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GFX Pipeline - 개발 현황 다이어그램</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #fff;
+            padding: 40px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #333;
+        }
+        .header h1 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .header .subtitle {
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 40px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            background: #fafafa;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+        .legend-box {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #333;
+        }
+        .legend-box.completed { background: #333; }
+        .legend-box.in-progress { background: repeating-linear-gradient(45deg, #fff, #fff 3px, #333 3px, #333 6px); }
+        .legend-box.waiting { background: #fff; }
+
+        /* Pipeline */
+        .pipeline {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Module Row */
+        .module-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* Module Box */
+        .module {
+            border: 2px solid #333;
+            padding: 20px;
+            min-width: 280px;
+            position: relative;
+        }
+        .module.completed {
+            background: #333;
+            color: #fff;
+        }
+        .module.in-progress {
+            background: repeating-linear-gradient(45deg, #fff, #fff 5px, #e0e0e0 5px, #e0e0e0 10px);
+        }
+        .module.waiting {
+            background: #fff;
+            border-style: dashed;
+        }
+
+        .module-number {
+            position: absolute;
+            top: -12px;
+            left: 15px;
+            background: #fff;
+            padding: 0 8px;
+            font-size: 12px;
+            font-weight: bold;
+            border: 2px solid #333;
+        }
+        .module.completed .module-number {
+            background: #333;
+            color: #fff;
+        }
+
+        .module-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .module-project {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 12px;
+            font-family: monospace;
+        }
+        .module.completed .module-project {
+            color: #ccc;
+        }
+
+        .module-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            padding: 8px 12px;
+            border: 1px solid currentColor;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+        }
+        .status-icon {
+            font-size: 14px;
+        }
+
+        /* Arrow */
+        .arrow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #333;
+            font-size: 12px;
+        }
+        .arrow-line {
+            width: 2px;
+            height: 30px;
+            background: #333;
+        }
+        .arrow-head {
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 10px solid #333;
+        }
+        .arrow-label {
+            margin-top: 5px;
+            font-size: 11px;
+            color: #666;
+        }
+
+        /* Horizontal Arrow */
+        .h-arrow {
+            display: flex;
+            align-items: center;
+            min-width: 60px;
+        }
+        .h-arrow-line {
+            height: 2px;
+            flex: 1;
+            background: #333;
+        }
+        .h-arrow-head {
+            width: 0;
+            height: 0;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+            border-left: 10px solid #333;
+        }
+
+        /* Branching Section */
+        .branch-section {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            margin-left: 100px;
+        }
+
+        .branch-connector {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 30px;
+        }
+        .branch-line-v {
+            width: 2px;
+            height: 60px;
+            background: #333;
+        }
+        .branch-line-h {
+            height: 2px;
+            width: 80px;
+            background: #333;
+        }
+        .branch-split {
+            display: flex;
+            align-items: center;
+        }
+
+        .branch-modules {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Data Flow Labels */
+        .data-label {
+            font-size: 11px;
+            color: #666;
+            padding: 4px 8px;
+            border: 1px dashed #999;
+            background: #fff;
+        }
+
+        /* Summary Section */
+        .summary {
+            margin-top: 50px;
+            padding: 25px;
+            border: 2px solid #333;
+        }
+        .summary h2 {
+            font-size: 16px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ccc;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .summary-item {
+            text-align: center;
+            padding: 15px;
+            border: 1px solid #ddd;
+        }
+        .summary-number {
+            font-size: 36px;
+            font-weight: bold;
+            color: #333;
+        }
+        .summary-label {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        /* Progress Bar */
+        .progress-section {
+            margin-top: 30px;
+        }
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+        .progress-bar {
+            height: 24px;
+            border: 2px solid #333;
+            display: flex;
+        }
+        .progress-completed {
+            background: #333;
+            height: 100%;
+        }
+        .progress-in-progress {
+            background: repeating-linear-gradient(45deg, #fff, #fff 3px, #999 3px, #999 6px);
+            height: 100%;
+        }
+        .progress-remaining {
+            background: #fff;
+            height: 100%;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 30px;
+            text-align: right;
+            font-size: 11px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>GFX Pipeline - 개발 현황</h1>
+            <div class="subtitle">6-Module Architecture Status Overview</div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-box completed"></div>
+                <span>완료 (Completed)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box in-progress"></div>
+                <span>진행중 (In Progress)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box waiting"></div>
+                <span>대기중 (Waiting)</span>
+            </div>
+        </div>
+
+        <!-- Pipeline Diagram -->
+        <div class="pipeline">
+            <!-- Module 1 -->
+            <div class="module-row">
+                <div class="module completed">
+                    <div class="module-number">Module 1</div>
+                    <div class="module-title">GFX Simulator</div>
+                    <div class="module-project">automation_feature_table</div>
+                    <div class="module-status">
+                        <span class="status-icon">●</span>
+                        <span>개발 완료</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Arrow -->
+            <div class="arrow" style="margin-left: 140px;">
+                <div class="arrow-line"></div>
+                <div class="arrow-head"></div>
+                <span class="data-label">JSON Files</span>
+            </div>
+
+            <!-- Module 2 -->
+            <div class="module-row">
+                <div class="module completed">
+                    <div class="module-number">Module 2</div>
+                    <div class="module-title">GFX-NAS-Supabase Sync</div>
+                    <div class="module-project">automation_hub</div>
+                    <div class="module-status">
+                        <span class="status-icon">●</span>
+                        <span>개발 완료 - 자동 연동</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Arrow -->
+            <div class="arrow" style="margin-left: 140px;">
+                <div class="arrow-line"></div>
+                <div class="arrow-head"></div>
+                <span class="data-label">INSERT</span>
+            </div>
+
+            <!-- Module 3 -->
+            <div class="module-row">
+                <div class="module in-progress">
+                    <div class="module-number">Module 3</div>
+                    <div class="module-title">Supabase DB Schema</div>
+                    <div class="module-project">automation_hub (4 schemas: json, wsop_plus, manual, ae)</div>
+                    <div class="module-status">
+                        <span class="status-icon">◐</span>
+                        <span>무결성 검증 진행중</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Branch Arrow -->
+            <div style="display: flex; margin-left: 140px;">
+                <div class="arrow">
+                    <div class="arrow-line" style="height: 20px;"></div>
+                </div>
+            </div>
+
+            <!-- Branch Label -->
+            <div style="margin-left: 100px; margin-bottom: 10px;">
+                <span class="data-label">Realtime Subscription</span>
+            </div>
+
+            <!-- Modules 4 & 5 Branch -->
+            <div style="display: flex; gap: 30px; margin-left: 50px;">
+                <!-- Module 4 -->
+                <div class="module in-progress" style="min-width: 240px;">
+                    <div class="module-number">Module 4</div>
+                    <div class="module-title">Main Dashboard</div>
+                    <div class="module-project">TBD (Editorial: What/When)</div>
+                    <div class="module-status">
+                        <span class="status-icon">◐</span>
+                        <span>Zed 작업중</span>
+                    </div>
+                </div>
+
+                <!-- Module 5 -->
+                <div class="module in-progress" style="min-width: 240px;">
+                    <div class="module-number">Module 5</div>
+                    <div class="module-title">Sub Dashboard</div>
+                    <div class="module-project">TBD (Operator: How)</div>
+                    <div class="module-status">
+                        <span class="status-icon">◐</span>
+                        <span>레이아웃 정의 진행중</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Converge Arrow -->
+            <div style="display: flex; margin-left: 260px; margin-top: 15px;">
+                <div class="arrow">
+                    <div style="display: flex; align-items: flex-end;">
+                        <div style="width: 160px; height: 2px; background: #333;"></div>
+                    </div>
+                    <div class="arrow-line" style="height: 20px;"></div>
+                    <div class="arrow-head"></div>
+                    <span class="data-label">render_jobs / WebSocket</span>
+                </div>
+            </div>
+
+            <!-- Module 6 -->
+            <div class="module-row" style="margin-left: 180px;">
+                <div class="module waiting">
+                    <div class="module-number">Module 6</div>
+                    <div class="module-title">AE-Nexrender</div>
+                    <div class="module-project">automation_ae</div>
+                    <div class="module-status">
+                        <span class="status-icon">○</span>
+                        <span>POC 완료 - 선행 작업 대기</span>
+                    </div>
+                </div>
+                <div class="h-arrow">
+                    <div class="h-arrow-line"></div>
+                    <div class="h-arrow-head"></div>
+                </div>
+                <div style="border: 2px solid #333; padding: 15px 25px; background: #f5f5f5;">
+                    <div style="font-weight: bold; font-size: 14px;">Output</div>
+                    <div style="font-size: 11px; color: #666; margin-top: 4px;">Video/Image Files</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary">
+            <h2>개발 현황 요약</h2>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="summary-number">2</div>
+                    <div class="summary-label">완료 (Completed)</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-number">3</div>
+                    <div class="summary-label">진행중 (In Progress)</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-number">1</div>
+                    <div class="summary-label">대기중 (Waiting)</div>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="progress-section">
+                <div class="progress-label">
+                    <span>전체 진행률</span>
+                    <span>약 50%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-completed" style="width: 33%;"></div>
+                    <div class="progress-in-progress" style="width: 33%;"></div>
+                    <div class="progress-remaining" style="width: 34%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            Last Updated: 2026-01-20 | automation_orchestration
+        </div>
+    </div>
+</body>
+</html>
