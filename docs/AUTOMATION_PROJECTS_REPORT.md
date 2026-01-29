@@ -5,6 +5,8 @@
 > - [DB 스키마 상세 설계](architecture.md) - DDL, ERD, Enum 타입
 > - [아키텍처 요약](ARCHITECTURE_ANALYSIS.md) - Executive Summary
 > - [프로젝트 관계도](PROJECT_RELATIONSHIPS.md) - 프로젝트 간 의존성
+> - [마이그레이션 가이드](MIGRATION_GUIDE.md) - 데이터 마이그레이션 절차
+> - [Dashboard 재설계](PHASE2_DASHBOARD_DESIGN.md) - Phase 2 Dashboard 명세
 
 ---
 
@@ -24,7 +26,7 @@
 | **automation_hub** | ✅ 활성 | 공유 인프라 (DB, 모델) | Python, PostgreSQL/Supabase, Pydantic | Module 2 |
 | **automation_schema** | 🔄 개발 중 | Supabase DB 스키마 관리 | PostgreSQL, Supabase CLI | Module 3 |
 | **automation_sub** | ✅ 활성 | PRD 관리 및 스크립트 | Python, Google Docs API | - |
-| **automation_ae_switcher** | 📋 PRD만 | AE 모드 전환 | (automation_ae에 구현됨) | - |
+| **automation_aep_csv** | 🔧 유틸리티 | AEP 템플릿 CSV 처리 | Python | - |
 | **automation_orchestration** | 📂 문서 허브 | 아키텍처 문서 저장소 + 모니터링 | Markdown | - |
 
 ### 연관 프로젝트
@@ -67,7 +69,7 @@
 
 **경로**: `C:\claude\automation_dashboard`
 
-**상태**: 🔄 개발 중 **(50% 완성 - 아키텍처 완료, UI 미완성)**
+**상태**: 🔄 개발 중 **(70% 완성 - Supabase 클라이언트, Realtime 구독, WebSocket Store 구현 완료)**
 
 ### 역할
 
@@ -143,36 +145,10 @@ automation_schema/
 
 ---
 
-## 4. automation_ae_switcher
 
-**경로**: `C:\claude\automation_ae_switcher`
+## 4. 관련 활성 프로젝트
 
-**상태**: 📋 PRD 문서만 보관 (실제 구현은 automation_ae에 통합)
-
-### 폴더 구조
-```
-automation_ae_switcher/
-└── docs/
-    └── 0007-prd-ae-mode-switcher.md  # PRD 문서
-```
-
-### 목적
-After Effects 렌더링 모드 ↔ 편집 모드 자동 전환
-
-| 기능 | 설명 |
-|------|------|
-| Edit 모드 | Worker 중지 + 라이선스 파일 제거 → AE 편집 가능 |
-| Render 모드 | 라이선스 생성 + Worker 시작 → 자동 렌더링 |
-
-**실제 구현 위치**:
-- `C:\claude\automation_ae\scripts\ae_mode_manager.py`
-- `C:\claude\automation_ae\tools\ae_mode_toggle.py`
-
----
-
-## 5. 관련 활성 프로젝트
-
-### 5.1 automation_ae (Module 6)
+### 4.1 automation_ae (Module 6)
 
 **경로**: `C:\claude\automation_ae`
 
@@ -190,7 +166,7 @@ automation_ae/
 
 **기술 스택**: FastAPI, SQLAlchemy, React 18, TypeScript, Nexrender
 
-### 5.2 automation_hub (Module 2)
+### 4.2 automation_hub (Module 2)
 
 **경로**: `C:\claude\automation_hub`
 
@@ -205,7 +181,7 @@ automation_hub/
 
 **역할**: 모든 프로젝트가 공유하는 중앙 데이터베이스 및 모델
 
-### 5.3 automation_feature_table (Module 1)
+### 4.3 automation_feature_table (Module 1)
 
 **경로**: `C:\claude\automation_feature_table`
 
@@ -221,7 +197,7 @@ automation_feature_table/
 
 **역할**: 핸드 시작/종료 자동 감지, 등급 분류 (Royal Flush ~ High Card)
 
-### 5.4 automation_sub (PRD 관리)
+### 4.4 automation_sub (PRD 관리)
 
 **경로**: `C:\claude\automation_sub`
 
@@ -234,13 +210,13 @@ automation_sub/
 
 ---
 
-## 6. 연관 프로젝트
+## 5. 연관 프로젝트
 
-### 6.1 ae_nexrender_module
+### 5.1 ae_nexrender_module
 
 **경로**: `C:\claude\ae_nexrender_module`
 
-**상태**: ✅ 활성
+**상태**: ✅ 활성 **(85% 완성 - CyprusDesign.yaml 26개 컴포지션 매핑 완료)**
 
 ### 역할
 
@@ -301,7 +277,7 @@ automation_sub/
 
 ---
 
-## 7. 통합 데이터 파이프라인
+## 6. 통합 데이터 파이프라인
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
@@ -349,7 +325,7 @@ automation_sub/
 
 ---
 
-## 8. 기술 스택 요약
+## 7. 기술 스택 요약
 
 ### Python
 - Python 3.11+, Pydantic v2, FastAPI
@@ -371,7 +347,7 @@ automation_sub/
 
 ---
 
-## 9. 결론
+## 8. 결론
 
 | 항목 | 내용 |
 |------|------|
@@ -379,7 +355,6 @@ automation_sub/
 | **활성** | 4개 (hub, ae, feature_table, sub) |
 | **개발 중** | 2개 (dashboard, schema) |
 | **문서 허브** | 1개 (orchestration) |
-| **PRD 문서만** | 1개 (ae_switcher) |
 | **연관 프로젝트** | 2개 (ae_nexrender_module, gfx_json) |
 | **핵심 목표** | WSOP 포커 방송 완전 자동화 |
 | **아키텍처** | 6-모듈 파이프라인 |
@@ -394,16 +369,16 @@ automation_sub/
 | automation_hub | **85-90%** | 🔄 개발 중 |
 | automation_schema | **85%** | 🔄 개발 중 |
 | automation_feature_table | **82%** | 🔄 개발 중 |
-| ae_nexrender_module | **78%** | 🔄 개발 중 |
-| automation_dashboard | **50%** | 🔄 초기 구현 |
+| ae_nexrender_module | **85%** | 🔄 개발 중 |
+| automation_dashboard | **70%** | 🔄 개발 중 |
 | automation_sub | **45%** | 📋 설계 완료 |
-| automation_ae_switcher | **5-10%** | 📄 PRD만 |
+| automation_aep_csv | **40%** | 🔧 유틸리티 |
 
 **automation_orchestration**은 전체 시스템 아키텍처 문서를 관리하는 중앙 문서 허브로 운영됩니다.
 
 ---
 
-## 10. 모듈-프로젝트 매핑
+## 9. 모듈-프로젝트 매핑
 
 | 모듈 | 프로젝트 | 역할 |
 |------|---------|------|
@@ -416,4 +391,4 @@ automation_sub/
 
 ---
 
-*최종 업데이트: 2026-01-19*
+*최종 업데이트: 2026-01-28*

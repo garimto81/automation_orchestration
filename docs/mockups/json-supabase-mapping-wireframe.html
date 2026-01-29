@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GFX JSON → Supabase Field Mapping (Wireframe)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Consolas', 'Courier New', monospace;
+            background: #ffffff;
+            color: #000000;
+            padding: 40px;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #000;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .header .subtitle {
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 40px;
+            padding: 16px;
+            border: 2px solid #000;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+        }
+
+        .legend-box {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #000;
+        }
+
+        .legend-box.json { background: #fff; }
+        .legend-box.table { background: #f0f0f0; }
+        .legend-box.field { background: #e0e0e0; }
+
+        .legend-line {
+            width: 30px;
+            height: 2px;
+            background: #000;
+        }
+
+        .legend-line.dashed {
+            background: repeating-linear-gradient(90deg, #000 0, #000 4px, transparent 4px, transparent 8px);
+        }
+
+        /* Main Canvas */
+        .canvas {
+            position: relative;
+            width: 100%;
+            min-height: 1800px;
+        }
+
+        /* Node Base */
+        .node {
+            position: absolute;
+            border: 2px solid #000;
+            background: #fff;
+        }
+
+        /* JSON Source Node */
+        .json-node {
+            width: 240px;
+            left: 40px;
+        }
+
+        .json-node .node-header {
+            padding: 12px;
+            border-bottom: 2px solid #000;
+            font-weight: 700;
+            font-size: 13px;
+            background: #000;
+            color: #fff;
+        }
+
+        .json-field {
+            padding: 8px 12px;
+            font-size: 11px;
+            border-bottom: 1px solid #ccc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .json-field:last-child {
+            border-bottom: none;
+        }
+
+        .json-field .name {
+            font-weight: 600;
+        }
+
+        .json-field .type {
+            color: #666;
+            font-size: 10px;
+        }
+
+        .json-field .connector {
+            width: 8px;
+            height: 8px;
+            border: 2px solid #000;
+            border-radius: 50%;
+            background: #fff;
+            margin-left: 8px;
+        }
+
+        /* Table Node */
+        .table-node {
+            width: 280px;
+            background: #f8f8f8;
+        }
+
+        .table-node .node-header {
+            padding: 12px;
+            border-bottom: 2px solid #000;
+            font-weight: 700;
+            font-size: 13px;
+            background: #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-node .node-header .badge {
+            font-size: 9px;
+            padding: 2px 6px;
+            border: 1px solid #000;
+            background: #fff;
+        }
+
+        .table-field {
+            padding: 6px 12px;
+            font-size: 11px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .table-field:last-child {
+            border-bottom: none;
+        }
+
+        .table-field .connector-in {
+            width: 8px;
+            height: 8px;
+            border: 2px solid #000;
+            border-radius: 50%;
+            background: #000;
+        }
+
+        .table-field .key {
+            font-size: 9px;
+            padding: 1px 4px;
+            border: 1px solid #000;
+            margin-right: 4px;
+            font-weight: 700;
+        }
+
+        .table-field .key.pk { background: #000; color: #fff; }
+        .table-field .key.fk { background: #999; color: #fff; }
+        .table-field .key.uk { background: #666; color: #fff; }
+
+        .table-field .name {
+            flex: 1;
+        }
+
+        .table-field .type {
+            color: #666;
+            font-size: 10px;
+        }
+
+        /* SVG Lines Container */
+        .lines-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .mapping-line {
+            stroke: #000;
+            stroke-width: 1.5;
+            fill: none;
+        }
+
+        .mapping-line.transform {
+            stroke-dasharray: 4, 4;
+        }
+
+        /* Transform Label */
+        .transform-label {
+            position: absolute;
+            font-size: 9px;
+            padding: 2px 6px;
+            border: 1px solid #000;
+            background: #fff;
+            white-space: nowrap;
+        }
+
+        /* Section Dividers */
+        .section-label {
+            position: absolute;
+            font-size: 14px;
+            font-weight: 700;
+            padding: 8px 16px;
+            border: 2px solid #000;
+            background: #fff;
+        }
+
+        /* Nested JSON Indicator */
+        .nested-indicator {
+            margin-left: 16px;
+            padding-left: 12px;
+            border-left: 2px solid #000;
+        }
+
+        /* Relationship Lines */
+        .rel-line {
+            stroke: #666;
+            stroke-width: 1;
+            fill: none;
+            stroke-dasharray: 2, 2;
+        }
+
+        /* Footer */
+        .footer {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+        }
+
+        /* Arrow Marker */
+        .arrow-marker {
+            fill: #000;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <h1>GFX JSON → Supabase Field Mapping Diagram</h1>
+        <p class="subtitle">Node-based Field Mapping | Wireframe Style</p>
+    </header>
+
+    <!-- Legend -->
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-box json"></div>
+            <span>JSON Field</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-box table"></div>
+            <span>DB Table</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-box field"></div>
+            <span>DB Column</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-line"></div>
+            <span>Direct Mapping</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-line dashed"></div>
+            <span>Transform Required</span>
+        </div>
+    </div>
+
+    <!-- Main Canvas -->
+    <div class="canvas">
+        <!-- SVG Lines -->
+        <svg class="lines-container" viewBox="0 0 1400 1800" preserveAspectRatio="xMidYMid meet">
+            <defs>
+                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" class="arrow-marker"/>
+                </marker>
+            </defs>
+
+            <!-- Session Level Mappings -->
+            <!-- ID → session_id -->
+            <path d="M 280 100 C 350 100, 400 100, 470 100" class="mapping-line" marker-end="url(#arrowhead)"/>
+            <!-- CreatedDateTimeUTC → session_created_at -->
+            <path d="M 280 128 C 350 128, 400 136, 470 136" class="mapping-line" marker-end="url(#arrowhead)"/>
+            <!-- Type → table_type -->
+            <path d="M 280 156 C 350 156, 400 172, 470 172" class="mapping-line" marker-end="url(#arrowhead)"/>
+            <!-- EventTitle → event_title -->
+            <path d="M 280 184 C 350 184, 400 208, 470 208" class="mapping-line" marker-end="url(#arrowhead)"/>
+            <!-- SoftwareVersion → software_version -->
+            <path d="M 280 212 C 350 212, 400 244, 470 244" class="mapping-line" marker-end="url(#arrowhead)"/>
+            <!-- Payouts → payouts -->
+            <path d="M 280 240 C 350 240, 400 280, 470 280" class="mapping-line" marker-end="url(#arrowhead)"/>
+            <!-- Computed: file_hash -->
+            <path d="M 200 268 C 300 300, 400 316, 470 316" class="mapping-line transform" marker-end="url(#arrowhead)"/>
+            <!-- Computed: hand_count -->
+            <path d="M 200 296 C 300 340, 400 352, 470 352" class="mapping-line transform" marker-end="url(#arrowhead)"/>
+
+            <!-- Hand Level Mappings -->
+            <!-- HandNum → hand_num -->
+            <path d="M 280 480 C 380 480, 420 480, 470 480" class="mapping-line" marker-end="url(#arrowhead)"/>
+            <!-- Duration → duration_seconds (transform) -->
+            <path d="M 280 508 C 380 508, 420 516, 470 516" class="mapping-line transform" marker-end="url(#arrowhead)"/>
+            <!-- StartDateTimeUTC → start_time -->
+            <path d="M 280 536 C 380 536, 420 552, 470 552" class="mapping-line" marker-end="url(#arrowhead)"/>
+            <!-- RecordingOffsetStart → recording_offset -->
+            <path d="M 280 564 C 380 564, 420 588, 470 588" class="mapping-line transform" marker-end="url(#arrowhead)"/>
+            <!-- GameVariant → game_variant -->
+            <path d="M 280 592 C 380 592, 420 624, 470 624" class="mapping-line" marker-end="url(#arrowhead)"/>
+            <!-- BetStructure → bet_structure -->
+            <path d="M 280 620 C 380 620, 420 660, 470 660" class="mapping-line" marker-end="url(#arrowhead)"/>
+            <!-- FlopDrawBlinds → blinds -->
+            <path d="M 280 648 C 380 648, 420 696, 470 696" class="mapping-line" marker-end="url(#arrowhead)"/>
+            <!-- Events[-1].Pot → pot_size (computed) -->
+            <path d="M 280 676 C 380 700, 420 732, 470 732" class="mapping-line transform" marker-end="url(#arrowhead)"/>
+
+            <!-- Event Level Mappings -->
+            <!-- EventType → event_type -->
+            <path d="M 280 870 C 380 870, 420 870, 470 870" class="mapping-line transform" marker-end="url(#arrowhead)"/>
+            <!-- PlayerNum → player_num -->
+            <path d="M 280 898 C 380 898, 420 906, 470 906" class="mapping-line" marker-end="url(#arrowhead)"/>
+            <!-- BetAmt → bet_amt -->
+            <path d="M 280 926 C 380 926, 420 942, 470 942" class="mapping-line" marker-end="url(#arrowhead)"/>
+            <!-- Pot → pot -->
+            <path d="M 280 954 C 380 954, 420 978, 470 978" class="mapping-line" marker-end="url(#arrowhead)"/>
+            <!-- BoardCards → board_cards -->
+            <path d="M 280 982 C 380 982, 420 1014, 470 1014" class="mapping-line" marker-end="url(#arrowhead)"/>
+
+            <!-- Player Level Mappings -->
+            <!-- PlayerNum → seat_num -->
+            <path d="M 280 1170 C 380 1170, 420 1170, 470 1170" class="mapping-line" marker-end="url(#arrowhead)"/>
+            <!-- Name → player_name -->
+            <path d="M 280 1198 C 380 1198, 420 1206, 470 1206" class="mapping-line" marker-end="url(#arrowhead)"/>
+            <!-- HoleCards → hole_cards (transform) -->
+            <path d="M 280 1226 C 380 1226, 420 1242, 470 1242" class="mapping-line transform" marker-end="url(#arrowhead)"/>
+            <!-- StartStackAmt → start_stack_amt -->
+            <path d="M 280 1254 C 380 1254, 420 1278, 470 1278" class="mapping-line" marker-end="url(#arrowhead)"/>
+            <!-- EndStackAmt → end_stack_amt -->
+            <path d="M 280 1282 C 380 1282, 420 1314, 470 1314" class="mapping-line" marker-end="url(#arrowhead)"/>
+            <!-- Computed: is_winner -->
+            <path d="M 200 1310 C 300 1360, 420 1350, 470 1350" class="mapping-line transform" marker-end="url(#arrowhead)"/>
+            <!-- VPIPPercent → vpip_percent -->
+            <path d="M 280 1338 C 380 1380, 420 1386, 470 1386" class="mapping-line" marker-end="url(#arrowhead)"/>
+
+            <!-- Table Relationships (FK lines) -->
+            <!-- gfx_sessions → gfx_hands -->
+            <path d="M 750 388 L 750 430 L 520 430 L 520 444" class="rel-line" marker-end="url(#arrowhead)"/>
+            <!-- gfx_hands → gfx_events -->
+            <path d="M 750 768 L 750 800 L 520 800 L 520 834" class="rel-line" marker-end="url(#arrowhead)"/>
+            <!-- gfx_hands → gfx_hand_players -->
+            <path d="M 750 768 L 750 1100 L 520 1100 L 520 1134" class="rel-line" marker-end="url(#arrowhead)"/>
+
+            <!-- Player Master Mapping -->
+            <!-- Name+LongName → player_hash -->
+            <path d="M 280 1198 C 380 1240, 800 1500, 900 1500" class="mapping-line transform" marker-end="url(#arrowhead)"/>
+        </svg>
+
+        <!-- Section Labels -->
+        <div class="section-label" style="left: 40px; top: 40px;">JSON SOURCE</div>
+        <div class="section-label" style="left: 470px; top: 40px;">SUPABASE TABLES</div>
+
+        <!-- ============================================ -->
+        <!-- SESSION LEVEL -->
+        <!-- ============================================ -->
+
+        <!-- JSON: Root (Session) -->
+        <div class="node json-node" style="top: 70px;">
+            <div class="node-header">{ } Root (Session)</div>
+            <div class="json-field">
+                <span class="name">ID</span>
+                <span class="type">int64</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field">
+                <span class="name">CreatedDateTimeUTC</span>
+                <span class="type">ISO8601</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field">
+                <span class="name">Type</span>
+                <span class="type">string</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field">
+                <span class="name">EventTitle</span>
+                <span class="type">string</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field">
+                <span class="name">SoftwareVersion</span>
+                <span class="type">string</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field">
+                <span class="name">Payouts</span>
+                <span class="type">int[10]</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field" style="background: #f0f0f0;">
+                <span class="name" style="color: #666;">[Computed] file</span>
+                <span class="type">SHA256</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field" style="background: #f0f0f0;">
+                <span class="name" style="color: #666;">[Computed] Hands.length</span>
+                <span class="type">int</span>
+                <div class="connector"></div>
+            </div>
+        </div>
+
+        <!-- Table: gfx_sessions -->
+        <div class="node table-node" style="top: 70px; left: 470px;">
+            <div class="node-header">
+                <span>gfx_sessions</span>
+                <span class="badge">SESSION</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="key pk">PK</span>
+                <span class="name">id</span>
+                <span class="type">uuid</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="key uk">UK</span>
+                <span class="name">session_id</span>
+                <span class="type">BIGINT</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">session_created_at</span>
+                <span class="type">TIMESTAMPTZ</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">table_type</span>
+                <span class="type">ENUM</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">event_title</span>
+                <span class="type">TEXT</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">software_version</span>
+                <span class="type">TEXT</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">payouts</span>
+                <span class="type">INT[]</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="key uk">UK</span>
+                <span class="name">file_hash</span>
+                <span class="type">TEXT</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">hand_count</span>
+                <span class="type">INT</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">raw_json</span>
+                <span class="type">JSONB</span>
+            </div>
+        </div>
+
+        <!-- Transform Labels for Session -->
+        <div class="transform-label" style="top: 92px; left: 350px;">direct</div>
+        <div class="transform-label" style="top: 162px; left: 350px;">ENUM map</div>
+        <div class="transform-label" style="top: 290px; left: 320px;">SHA256()</div>
+        <div class="transform-label" style="top: 330px; left: 320px;">len()</div>
+
+        <!-- ============================================ -->
+        <!-- HAND LEVEL -->
+        <!-- ============================================ -->
+
+        <!-- JSON: Hands[] -->
+        <div class="node json-node" style="top: 450px;">
+            <div class="node-header">[ ] Hands[]</div>
+            <div class="json-field">
+                <span class="name">HandNum</span>
+                <span class="type">int</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field">
+                <span class="name">Duration</span>
+                <span class="type">ISO8601</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field">
+                <span class="name">StartDateTimeUTC</span>
+                <span class="type">ISO8601</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field">
+                <span class="name">RecordingOffsetStart</span>
+                <span class="type">ISO8601</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field">
+                <span class="name">GameVariant</span>
+                <span class="type">string</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field">
+                <span class="name">BetStructure</span>
+                <span class="type">string</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field">
+                <span class="name">FlopDrawBlinds</span>
+                <span class="type">object</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field" style="background: #f0f0f0;">
+                <span class="name" style="color: #666;">[Computed] Events[-1].Pot</span>
+                <span class="type">int</span>
+                <div class="connector"></div>
+            </div>
+        </div>
+
+        <!-- Table: gfx_hands -->
+        <div class="node table-node" style="top: 450px; left: 470px;">
+            <div class="node-header">
+                <span>gfx_hands</span>
+                <span class="badge">1:N</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="key pk">PK</span>
+                <span class="name">id</span>
+                <span class="type">uuid</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="key fk">FK</span>
+                <span class="name">session_id</span>
+                <span class="type">BIGINT</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">hand_num</span>
+                <span class="type">INT</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">duration_seconds</span>
+                <span class="type">INT</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">start_time</span>
+                <span class="type">TIMESTAMPTZ</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">recording_offset_seconds</span>
+                <span class="type">BIGINT</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">game_variant</span>
+                <span class="type">ENUM</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">bet_structure</span>
+                <span class="type">ENUM</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">blinds</span>
+                <span class="type">JSONB</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">pot_size</span>
+                <span class="type">BIGINT</span>
+            </div>
+        </div>
+
+        <!-- Transform Labels for Hands -->
+        <div class="transform-label" style="top: 500px; left: 350px;">parse_duration()</div>
+        <div class="transform-label" style="top: 576px; left: 350px;">parse_offset()</div>
+        <div class="transform-label" style="top: 710px; left: 320px;">last event</div>
+
+        <!-- ============================================ -->
+        <!-- EVENT LEVEL -->
+        <!-- ============================================ -->
+
+        <!-- JSON: Events[] -->
+        <div class="node json-node" style="top: 840px;">
+            <div class="node-header">[ ] Events[]</div>
+            <div class="json-field">
+                <span class="name">EventType</span>
+                <span class="type">string</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field">
+                <span class="name">PlayerNum</span>
+                <span class="type">int</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field">
+                <span class="name">BetAmt</span>
+                <span class="type">int</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field">
+                <span class="name">Pot</span>
+                <span class="type">int</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field">
+                <span class="name">BoardCards</span>
+                <span class="type">string|null</span>
+                <div class="connector"></div>
+            </div>
+        </div>
+
+        <!-- Table: gfx_events -->
+        <div class="node table-node" style="top: 840px; left: 470px;">
+            <div class="node-header">
+                <span>gfx_events</span>
+                <span class="badge">1:N</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="key pk">PK</span>
+                <span class="name">id</span>
+                <span class="type">uuid</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="key fk">FK</span>
+                <span class="name">hand_id</span>
+                <span class="type">uuid</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">event_order</span>
+                <span class="type">INT</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">event_type</span>
+                <span class="type">ENUM</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">player_num</span>
+                <span class="type">INT</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">bet_amt</span>
+                <span class="type">BIGINT</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">pot</span>
+                <span class="type">BIGINT</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">board_cards</span>
+                <span class="type">TEXT</span>
+            </div>
+        </div>
+
+        <!-- Transform Labels for Events -->
+        <div class="transform-label" style="top: 862px; left: 330px;">"ALL IN"→ALL_IN</div>
+
+        <!-- ============================================ -->
+        <!-- PLAYER LEVEL -->
+        <!-- ============================================ -->
+
+        <!-- JSON: Players[] -->
+        <div class="node json-node" style="top: 1140px;">
+            <div class="node-header">[ ] Players[]</div>
+            <div class="json-field">
+                <span class="name">PlayerNum</span>
+                <span class="type">1-10</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field">
+                <span class="name">Name</span>
+                <span class="type">string</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field">
+                <span class="name">HoleCards</span>
+                <span class="type">["10d 9d"]</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field">
+                <span class="name">StartStackAmt</span>
+                <span class="type">int</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field">
+                <span class="name">EndStackAmt</span>
+                <span class="type">int</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field" style="background: #f0f0f0;">
+                <span class="name" style="color: #666;">[Computed] stack diff</span>
+                <span class="type">bool</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field">
+                <span class="name">VPIPPercent</span>
+                <span class="type">float</span>
+                <div class="connector"></div>
+            </div>
+            <div class="json-field">
+                <span class="name">LongName</span>
+                <span class="type">string</span>
+                <div class="connector"></div>
+            </div>
+        </div>
+
+        <!-- Table: gfx_hand_players -->
+        <div class="node table-node" style="top: 1140px; left: 470px;">
+            <div class="node-header">
+                <span>gfx_hand_players</span>
+                <span class="badge">1:N</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="key pk">PK</span>
+                <span class="name">id</span>
+                <span class="type">uuid</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="key fk">FK</span>
+                <span class="name">hand_id</span>
+                <span class="type">uuid</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="key fk">FK</span>
+                <span class="name">player_id</span>
+                <span class="type">uuid</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">seat_num</span>
+                <span class="type">INT</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">player_name</span>
+                <span class="type">TEXT</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">hole_cards</span>
+                <span class="type">TEXT[]</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">start_stack_amt</span>
+                <span class="type">BIGINT</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">end_stack_amt</span>
+                <span class="type">BIGINT</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">is_winner</span>
+                <span class="type">BOOL</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">vpip_percent</span>
+                <span class="type">NUMERIC</span>
+            </div>
+        </div>
+
+        <!-- Transform Labels for Players -->
+        <div class="transform-label" style="top: 1234px; left: 330px;">split(" ")</div>
+        <div class="transform-label" style="top: 1340px; left: 320px;">end > start</div>
+
+        <!-- ============================================ -->
+        <!-- PLAYER MASTER TABLE -->
+        <!-- ============================================ -->
+
+        <!-- Table: gfx_players -->
+        <div class="node table-node" style="top: 1480px; left: 470px; width: 260px;">
+            <div class="node-header">
+                <span>gfx_players</span>
+                <span class="badge">MASTER</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="key pk">PK</span>
+                <span class="name">id</span>
+                <span class="type">uuid</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="key uk">UK</span>
+                <span class="name">player_hash</span>
+                <span class="type">TEXT</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">name</span>
+                <span class="type">TEXT</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">long_name</span>
+                <span class="type">TEXT</span>
+            </div>
+            <div class="table-field">
+                <div class="connector-in"></div>
+                <span class="name">total_hands_played</span>
+                <span class="type">INT</span>
+            </div>
+        </div>
+
+        <!-- Transform Label for Player Master -->
+        <div class="transform-label" style="top: 1505px; left: 320px;">MD5(name:long)</div>
+
+        <!-- ============================================ -->
+        <!-- RELATIONSHIP INDICATORS -->
+        <!-- ============================================ -->
+
+        <div style="position: absolute; top: 410px; left: 760px; font-size: 10px; border: 1px solid #000; padding: 4px 8px; background: #fff;">1:N</div>
+        <div style="position: absolute; top: 790px; left: 560px; font-size: 10px; border: 1px solid #000; padding: 4px 8px; background: #fff;">1:N</div>
+        <div style="position: absolute; top: 1100px; left: 560px; font-size: 10px; border: 1px solid #000; padding: 4px 8px; background: #fff;">1:N</div>
+
+        <!-- Footer -->
+        <div class="footer">
+            GFX JSON → Supabase Field Mapping | Based on 02-GFX-JSON-DB.md | Version 1.1.0
+        </div>
+    </div>
+</body>
+</html>

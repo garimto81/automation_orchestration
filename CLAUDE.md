@@ -6,157 +6,181 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Role
 
-**Architecture Documentation Hub + Monitoring Center**
+**Hybrid repository**: Documentation hub + Overview Dashboard app
 
 | Role | Description |
 |------|-------------|
-| Architecture Docs | Central management of system design documents |
-| Monitoring | Overview of other automation_* projects |
-| Implementation | None (performed in other projects) |
+| Architecture Docs | WSOP broadcast automation system design (6-module pipeline) |
+| Project Monitoring | Status tracking for 10 projects (8 automation_* + 2 related) |
+| Overview Dashboard | React app for visualizing project dependencies (`app/`) |
 
 ---
 
-## Document Storage Rules
+## Build & Test Commands
 
-**All documents must be stored in `docs/` folder**
+```powershell
+# Overview Dashboard App (app/)
+cd C:\claude\automation_orchestration\app
+npm install                    # 의존성 설치
+npm run dev                    # 개발 서버 (Vite)
+npm run build                  # 프로덕션 빌드
+npm run test                   # Vitest 단위 테스트
+npm run lint                   # ESLint
 
+# Playwright 스크린샷 (목업 → 이미지)
+npx playwright screenshot docs/mockups/feature.html docs/images/feature.png --viewport-size=1920,1080
 ```
-C:\claude\automation_orchestration\
-├── docs/                    # All documents here
-│   ├── architecture.md      # DB schema detailed design (DDL, ERD)
-│   ├── GFX_PIPELINE_ARCHITECTURE.md  # 6-module pipeline
-│   ├── ARCHITECTURE_ANALYSIS.md      # Executive summary
-│   ├── AUTOMATION_PROJECTS_REPORT.md # 7 projects status
-│   ├── MODULE_*_DESIGN.md   # Module-specific designs
-│   ├── gfx/                 # GFX data specifications
-│   │   ├── 00-common/       # Common docs
-│   │   ├── 01-categories/   # Category docs
-│   │   ├── 02-schemas/      # Schema definitions
-│   │   └── 03-dataflow/     # Data flow docs
-│   ├── mockups/             # HTML mockups
-│   └── images/              # Screenshots, diagrams
-└── migrations/              # SQL migration files
-```
-
-### Naming Conventions
-
-| Type | Pattern | Example |
-|------|---------|---------|
-| Design docs | `lowercase.md` | `architecture.md`, `data_flow.md` |
-| Analysis reports | `*_ANALYSIS.md` | `ARCHITECTURE_ANALYSIS.md` |
-| Status reports | `*_REPORT.md` | `AUTOMATION_PROJECTS_REPORT.md` |
-| Module designs | `MODULE_*_DESIGN.md` | `MODULE_1_2_DESIGN.md` |
-| Schema docs | `* DB.md` | `WSOP+ DB.md` |
 
 ---
 
-## System Architecture
-
-### 6-Module Pipeline Architecture
+## Folder Structure
 
 ```
-[Module 1] GFX Simulator (automation_feature_table)
-     │ JSON Files
-     ▼
-[Module 2] GFX-NAS-Supabase Sync (automation_hub)
-     │ INSERT
-     ▼
-[Module 3] Supabase DB Schema (4 schemas: json, wsop_plus, manual, ae)
-     │ Realtime
-     ├───────────────────┐
-     ▼                   ▼
-[Module 4]           [Module 5]
-Main Dashboard       Sub Dashboard
-(What/When)          (How)
-     │ WebSocket         │ render_jobs
-     └───────────────────┤
-                         ▼
-              [Module 6] AE-Nexrender → Output
+automation_orchestration/
+├── app/                       # Overview Dashboard (React + TypeScript)
+│   ├── src/
+│   │   ├── components/        # UI (nodes/, layout/, ui/)
+│   │   ├── data/              # 프로젝트 정의, 노드/엣지
+│   │   ├── hooks/             # useGitHubStats, useHealthCheck
+│   │   ├── services/          # GitHub API, Supabase, localStorage
+│   │   ├── stores/            # Zustand (uiStore)
+│   │   └── types/             # Project, Node, Edge 타입
+│   └── package.json
+├── docs/                      # 아키텍처 문서
+│   ├── gfx/                   # GFX 데이터 스펙
+│   │   ├── 00-common/         # Overview, transforms, null handling
+│   │   ├── 01-categories/     # Chip, player, payout, event specs
+│   │   ├── 02-schemas/        # JSON schema, DB table schema
+│   │   ├── 03-dataflow/       # Pipeline overview
+│   │   └── 04-examples/       # Sample data
+│   ├── mockups/               # HTML 와이어프레임
+│   └── images/                # 스크린샷
+├── migrations/                # Supabase SQL migrations
+└── CLAUDE.md
 ```
-
-### Data Source Priority
-
-**Manual > WSOP+ > GFX** for unified views
-
-### Key Unified Views
-
-| View | Purpose |
-|------|---------|
-| `unified_players` | Player info merged from 3 sources |
-| `unified_events` | Tournament/session info merged |
-| `unified_chip_data` | Chip data (WSOP+ > GFX priority) |
 
 ---
 
-## Related Projects
+## Overview Dashboard Architecture
 
-| Project | Module | Role |
-|---------|--------|------|
-| `automation_feature_table` | 1 | GFX Simulator |
-| `automation_hub` | 2, 3 | NAS Sync, Supabase Schema |
-| (TBD) | 4 | Main Dashboard |
-| (TBD) | 5 | Sub Dashboard |
-| `automation_ae` | 6 | AE-Nexrender |
-| `automation_aep` | - | AEP Template Analysis |
-| `automation_orchestration` | - | Documentation Hub |
+React Flow 기반 프로젝트 의존성 시각화 앱
+
+### Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| UI | React 18, TypeScript, Tailwind CSS |
+| State | Zustand |
+| Visualization | @xyflow/react (React Flow) |
+| Data Fetching | @tanstack/react-query |
+| Build | Vite, vitest |
+
+### Core Components
+
+| Component | Path | Purpose |
+|-----------|------|---------|
+| `App.tsx` | `src/App.tsx` | ReactFlow 메인, viewMode 전환 |
+| `ProjectNode` | `src/components/nodes/` | 프로젝트 노드 렌더링 |
+| `LayerNode` | `src/components/nodes/` | 레이어 그룹 노드 |
+| `uiStore` | `src/stores/uiStore.ts` | viewMode, selection 상태 |
+| `edgeService` | `src/services/supabase.ts` | Edge 저장/로드 |
+
+### View Modes
+
+| Mode | Description |
+|------|-------------|
+| `modules` | 프로젝트 노드만 표시 |
+| `layers` | 레이어 그룹만 표시 |
+| `combined` | 레이어 + 프로젝트 통합 |
 
 ---
 
-## Key Documents Reference
+## Key Documents
 
 | Document | Purpose |
 |----------|---------|
-| `docs/architecture.md` | 5-layer DB schema design (DDL, ERD, Enum types) |
-| `docs/GFX_PIPELINE_ARCHITECTURE.md` | 6-module pipeline details |
-| `docs/ARCHITECTURE_ANALYSIS.md` | Executive summary |
-| `docs/MODULE_3_5_DESIGN.md` | Supabase schema + Dashboard design |
-| `docs/GFX_AEP_FIELD_MAPPING.md` | 26 compositions, 84 fields mapping |
-| `migrations/*.sql` | Supabase migration files |
+| `GFX_PIPELINE_ARCHITECTURE.md` | 6-module pipeline master doc |
+| `AUTOMATION_PROJECTS_REPORT.md` | 10 projects status & completion % |
+| `PROJECT_RELATIONSHIPS.md` | Project dependencies diagram |
+| `architecture.md` | 5-layer DB schema (DDL, ERD, Enums) |
+| `GFX_AEP_FIELD_MAPPING.md` | 26 AE compositions, 84 fields mapping |
+| `MODULE_*_DESIGN.md` | Per-module detailed design |
 
 ---
 
-## Working with This Repository
+## 6-Module Pipeline
 
-### No Build/Test Commands
+```
+[1] GFX Simulator → [2] NAS-Supabase Sync → [3] Supabase DB
+                                                    │
+                              ┌─────────────────────┴─────────────────────┐
+                              ▼                                           ▼
+                    [4] Main Dashboard                          [5] Sub Dashboard
+                       (What/When)                                  (How)
+                              └─────────────WebSocket─────────────────────┘
+                                                    │
+                                                    ▼
+                                          [6] AE-Nexrender
+```
 
-This is a documentation-only repository. No code implementation exists.
-
-### Creating New Documents
-
-1. Create in `docs/` folder only
-2. Follow naming conventions above
-3. Add cross-references to related documents using:
-   ```markdown
-   > **Related Documents**
-   > - [Document Name](./filename.md) - Description
-   ```
-
-### Mockups and Screenshots
-
-1. Create HTML mockup in `docs/mockups/`
-2. Capture screenshot using Playwright
-3. Save to `docs/images/`
-4. Reference in documentation
+**Data Priority**: Manual > WSOP+ > GFX
 
 ---
 
-## Supabase Schema Structure
+## Document Conventions
 
-| Schema | Purpose | Tables |
-|--------|---------|--------|
-| `json` | GFX JSON data | gfx_sessions, hands, hand_players, hand_actions, hand_cards, hand_results |
-| `wsop_plus` | WSOP+ imports | tournaments, blind_levels, payouts, official_players |
-| `manual` | Manual input | players_master, player_profiles, commentators, venues |
-| `ae` | AE rendering | templates, compositions, comp_layers, render_jobs, render_outputs |
-| `cuesheet` | Broadcast | broadcast_sessions, cue_sheets, cue_items |
+### Naming
+| Type | Pattern | Example |
+|------|---------|---------|
+| Design docs | `lowercase.md` | `architecture.md` |
+| Reports | `*_REPORT.md` | `AUTOMATION_PROJECTS_REPORT.md` |
+| Module designs | `MODULE_*_DESIGN.md` | `MODULE_1_2_DESIGN.md` |
+| PRD docs | `PRD-NNNN-*.md` | `PRD-0010-overview-dashboard.md` |
+
+### Cross-reference
+```markdown
+> **Related Documents**
+> - [Document Name](./filename.md) - Description
+```
+
+### Footer
+Always add: `*최종 수정: YYYY-MM-DD*`
 
 ---
 
-## Dashboard Role Separation
+## Mockup Workflow
 
-| Aspect | Main Dashboard | Sub Dashboard |
-|--------|----------------|---------------|
-| Core Function | Editorial decisions (What/When) | Caption output execution (How) |
-| User | Director/PD | Caption Operator |
-| Rendering | Not allowed | Allowed |
-| Cuesheet | Edit | Read-only |
+```powershell
+# 1. Create HTML mockup
+Write-Output "..." > docs/mockups/feature-name.html
+
+# 2. Screenshot with Playwright
+npx playwright screenshot docs/mockups/feature-name.html docs/images/feature-name.png --viewport-size=1920,1080
+
+# 3. Reference in markdown
+![Feature Name](images/feature-name.png)
+```
+
+---
+
+## Data Files
+
+프로젝트/노드 데이터는 `app/src/data/`에서 관리:
+
+| File | Purpose |
+|------|---------|
+| `projects.ts` | 10개 프로젝트 메타데이터 (status, techStack, progress) |
+| `projectDetails.ts` | PRD, 서비스, GitHub 정보 |
+| `initialNodes.ts` | ReactFlow 노드 위치/설정 |
+| `initialEdges.ts` | 프로젝트 간 의존성 엣지 |
+| `layers.ts` | 6-module 레이어 정의 |
+
+---
+
+## Update Checklist
+
+문서 업데이트 시 일관성 유지:
+- [ ] `docs/AUTOMATION_PROJECTS_REPORT.md` - 완성도 %
+- [ ] `docs/PROJECT_RELATIONSHIPS.md` - 의존성 다이어그램
+- [ ] `docs/GFX_PIPELINE_ARCHITECTURE.md` - 모듈 상태
+- [ ] `app/src/data/projects.ts` - Dashboard 데이터 (코드 수정 시)

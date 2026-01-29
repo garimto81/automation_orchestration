@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GFX JSON → Supabase Mapping Diagram</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Consolas', monospace;
+            background: #0a0a0f;
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid #2d3748;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .header .subtitle {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .legend-dot.json-source { background: #f59e0b; }
+        .legend-dot.json-schema { background: #3b82f6; }
+        .legend-dot.public-schema { background: #10b981; }
+        .legend-dot.trigger { background: #8b5cf6; }
+        .legend-dot.enum { background: #ec4899; }
+
+        /* Main Diagram Container */
+        .diagram-container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Three Column Layout */
+        .three-column {
+            display: grid;
+            grid-template-columns: 280px 1fr 320px;
+            gap: 24px;
+            align-items: flex-start;
+        }
+
+        /* Column Headers */
+        .column-header {
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+
+        .column-header.json-source {
+            background: linear-gradient(135deg, #f59e0b20, #d9770020);
+            border: 1px solid #f59e0b40;
+            color: #f59e0b;
+        }
+
+        .column-header.json-schema {
+            background: linear-gradient(135deg, #3b82f620, #1d4ed820);
+            border: 1px solid #3b82f640;
+            color: #3b82f6;
+        }
+
+        .column-header.public-schema {
+            background: linear-gradient(135deg, #10b98120, #05966920);
+            border: 1px solid #10b98140;
+            color: #10b981;
+        }
+
+        /* JSON Source Column */
+        .json-source-col {
+            position: relative;
+        }
+
+        .json-file-box {
+            background: #1a1a2e;
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .json-file-box h3 {
+            color: #f59e0b;
+            font-size: 14px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .json-file-box h3::before {
+            content: '{ }';
+            font-size: 12px;
+            background: #f59e0b;
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .json-structure {
+            font-size: 11px;
+            line-height: 1.6;
+            color: #94a3b8;
+        }
+
+        .json-key {
+            color: #f59e0b;
+        }
+
+        .json-type {
+            color: #64748b;
+            font-style: italic;
+        }
+
+        .json-nested {
+            margin-left: 16px;
+            border-left: 1px dashed #f59e0b40;
+            padding-left: 12px;
+        }
+
+        /* Middle Column - Mapping Area */
+        .mapping-area {
+            position: relative;
+        }
+
+        /* Schema Table */
+        .schema-table {
+            background: #1a1a2e;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            overflow: hidden;
+            border: 1px solid #2d3748;
+        }
+
+        .schema-table.json-schema {
+            border-color: #3b82f640;
+        }
+
+        .table-header {
+            padding: 12px 16px;
+            font-weight: 600;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .table-header.json-schema {
+            background: linear-gradient(90deg, #3b82f620, transparent);
+            color: #3b82f6;
+            border-bottom: 1px solid #3b82f640;
+        }
+
+        .table-header .badge {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: #3b82f630;
+        }
+
+        .table-fields {
+            padding: 8px 0;
+        }
+
+        .field-row {
+            display: grid;
+            grid-template-columns: 140px 80px 1fr;
+            padding: 6px 16px;
+            font-size: 11px;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .field-row:hover {
+            background: #ffffff08;
+        }
+
+        .field-name {
+            color: #e2e8f0;
+            font-weight: 500;
+        }
+
+        .field-type {
+            color: #64748b;
+            font-size: 10px;
+        }
+
+        .field-mapping {
+            color: #94a3b8;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .field-mapping .arrow {
+            color: #f59e0b;
+        }
+
+        .field-pk {
+            color: #f59e0b;
+        }
+
+        .field-fk {
+            color: #8b5cf6;
+        }
+
+        .field-uk {
+            color: #ec4899;
+        }
+
+        /* Right Column - Public Schema */
+        .public-col {
+            position: relative;
+        }
+
+        .public-table {
+            background: #1a1a2e;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            overflow: hidden;
+            border: 1px solid #10b98140;
+        }
+
+        .public-table .table-header {
+            background: linear-gradient(90deg, #10b98120, transparent);
+            color: #10b981;
+            border-bottom: 1px solid #10b98140;
+        }
+
+        .public-table .badge {
+            background: #10b98130;
+        }
+
+        /* Sync Flow Arrows */
+        .sync-flow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Mapping Lines Section */
+        .mapping-section {
+            background: #0f0f1a;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 40px;
+        }
+
+        .mapping-section h2 {
+            font-size: 16px;
+            color: #fff;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mapping-section h2::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(180deg, #3b82f6, #10b981);
+            border-radius: 2px;
+        }
+
+        /* Field Mapping Table */
+        .mapping-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .mapping-table th {
+            text-align: left;
+            padding: 12px 16px;
+            background: #1a1a2e;
+            color: #94a3b8;
+            font-weight: 500;
+            border-bottom: 1px solid #2d3748;
+        }
+
+        .mapping-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid #1e1e30;
+        }
+
+        .mapping-table tr:hover td {
+            background: #ffffff05;
+        }
+
+        .col-json {
+            color: #f59e0b;
+            font-family: 'SF Mono', monospace;
+        }
+
+        .col-db {
+            color: #3b82f6;
+            font-family: 'SF Mono', monospace;
+        }
+
+        .col-transform {
+            color: #94a3b8;
+            font-size: 10px;
+        }
+
+        .transform-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: 500;
+        }
+
+        .transform-badge.direct {
+            background: #10b98120;
+            color: #10b981;
+        }
+
+        .transform-badge.parse {
+            background: #8b5cf620;
+            color: #8b5cf6;
+        }
+
+        .transform-badge.compute {
+            background: #ec489820;
+            color: #ec4899;
+        }
+
+        .transform-badge.map {
+            background: #f59e0b20;
+            color: #f59e0b;
+        }
+
+        /* Data Flow Diagram */
+        .data-flow {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            padding: 32px;
+            background: #0f0f1a;
+            border-radius: 12px;
+            margin-top: 24px;
+        }
+
+        .flow-node {
+            padding: 16px 24px;
+            border-radius: 8px;
+            text-align: center;
+            min-width: 140px;
+        }
+
+        .flow-node.source {
+            background: linear-gradient(135deg, #f59e0b20, #f59e0b10);
+            border: 1px solid #f59e0b60;
+        }
+
+        .flow-node.json-db {
+            background: linear-gradient(135deg, #3b82f620, #3b82f610);
+            border: 1px solid #3b82f660;
+        }
+
+        .flow-node.public-db {
+            background: linear-gradient(135deg, #10b98120, #10b98110);
+            border: 1px solid #10b98160;
+        }
+
+        .flow-node .label {
+            font-size: 10px;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .flow-node .name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .flow-arrow {
+            color: #64748b;
+            font-size: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .flow-arrow .label {
+            font-size: 9px;
+            color: #8b5cf6;
+        }
+
+        /* Enum Types Section */
+        .enum-section {
+            margin-top: 40px;
+        }
+
+        .enum-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .enum-box {
+            background: #1a1a2e;
+            border: 1px solid #ec489840;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .enum-box h4 {
+            color: #ec4899;
+            font-size: 12px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .enum-box h4::before {
+            content: 'ENUM';
+            font-size: 8px;
+            background: #ec4899;
+            color: #000;
+            padding: 2px 4px;
+            border-radius: 2px;
+        }
+
+        .enum-values {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .enum-value {
+            font-size: 10px;
+            padding: 3px 8px;
+            background: #ec489815;
+            border-radius: 4px;
+            color: #f0abfc;
+        }
+
+        /* Trigger Section */
+        .trigger-section {
+            margin-top: 40px;
+            background: #0f0f1a;
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid #8b5cf640;
+        }
+
+        .trigger-section h2 {
+            color: #8b5cf6;
+            font-size: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .trigger-section h2::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: #8b5cf6;
+            border-radius: 2px;
+        }
+
+        .trigger-flow {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 16px;
+            background: #1a1a2e;
+            border-radius: 8px;
+        }
+
+        .trigger-box {
+            flex: 1;
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .trigger-box.source {
+            background: #3b82f615;
+            border: 1px dashed #3b82f6;
+        }
+
+        .trigger-box.trigger {
+            background: #8b5cf615;
+            border: 1px solid #8b5cf6;
+        }
+
+        .trigger-box.target {
+            background: #10b98115;
+            border: 1px dashed #10b981;
+        }
+
+        .trigger-box .icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .trigger-box .title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .trigger-box .desc {
+            font-size: 10px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        .trigger-arrow {
+            font-size: 20px;
+            color: #8b5cf6;
+        }
+
+        /* Stats Section */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+            margin-top: 40px;
+        }
+
+        .stat-card {
+            background: #1a1a2e;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid #2d3748;
+        }
+
+        .stat-card .number {
+            font-size: 32px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .stat-card .label {
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .stat-card.tables .number { color: #3b82f6; }
+        .stat-card.fields .number { color: #10b981; }
+        .stat-card.enums .number { color: #ec4899; }
+        .stat-card.triggers .number { color: #8b5cf6; }
+        .stat-card.views .number { color: #f59e0b; }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .three-column {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <h1>GFX JSON → Supabase Mapping Diagram</h1>
+        <p class="subtitle">PokerGFX JSON 파일 구조와 PostgreSQL/Supabase 스키마 매핑 관계</p>
+    </header>
+
+    <!-- Legend -->
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-dot json-source"></div>
+            <span>JSON Source File</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot json-schema"></div>
+            <span>json Schema (SSOT)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot public-schema"></div>
+            <span>public Schema (AEP)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot trigger"></div>
+            <span>Sync Trigger</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot enum"></div>
+            <span>ENUM Type</span>
+        </div>
+    </div>
+
+    <!-- Data Flow Overview -->
+    <div class="data-flow">
+        <div class="flow-node source">
+            <div class="label">SOURCE</div>
+            <div class="name">GFX JSON</div>
+        </div>
+        <div class="flow-arrow">
+            <span>→</span>
+            <span class="label">Parse</span>
+        </div>
+        <div class="flow-node json-db">
+            <div class="label">SCHEMA</div>
+            <div class="name">json.*</div>
+        </div>
+        <div class="flow-arrow">
+            <span>→</span>
+            <span class="label">Trigger</span>
+        </div>
+        <div class="flow-node public-db">
+            <div class="label">SCHEMA</div>
+            <div class="name">public.*</div>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card tables">
+            <div class="number">7</div>
+            <div class="label">Tables</div>
+        </div>
+        <div class="stat-card fields">
+            <div class="number">84</div>
+            <div class="label">Fields</div>
+        </div>
+        <div class="stat-card enums">
+            <div class="number">7</div>
+            <div class="label">ENUM Types</div>
+        </div>
+        <div class="stat-card triggers">
+            <div class="number">3</div>
+            <div class="label">Triggers</div>
+        </div>
+        <div class="stat-card views">
+            <div class="number">3</div>
+            <div class="label">Views</div>
+        </div>
+    </div>
+
+    <!-- Main Diagram -->
+    <div class="diagram-container" style="margin-top: 40px;">
+        <div class="three-column">
+            <!-- Left Column: JSON Source -->
+            <div class="json-source-col">
+                <div class="column-header json-source">
+                    JSON Source Structure
+                </div>
+
+                <div class="json-file-box">
+                    <h3>Root (Session)</h3>
+                    <div class="json-structure">
+                        <div><span class="json-key">ID</span> <span class="json-type">int64</span></div>
+                        <div><span class="json-key">CreatedDateTimeUTC</span> <span class="json-type">ISO8601</span></div>
+                        <div><span class="json-key">Type</span> <span class="json-type">"FEATURE_TABLE"</span></div>
+                        <div><span class="json-key">EventTitle</span> <span class="json-type">string</span></div>
+                        <div><span class="json-key">SoftwareVersion</span> <span class="json-type">string</span></div>
+                        <div><span class="json-key">Payouts</span> <span class="json-type">int[10]</span></div>
+                        <div class="json-nested">
+                            <div style="color: #f59e0b; font-weight: 600; margin: 8px 0;">Hands[]</div>
+                            <div><span class="json-key">HandNum</span> <span class="json-type">int</span></div>
+                            <div><span class="json-key">Duration</span> <span class="json-type">ISO8601</span></div>
+                            <div><span class="json-key">StartDateTimeUTC</span> <span class="json-type">ISO8601</span></div>
+                            <div><span class="json-key">RecordingOffsetStart</span> <span class="json-type">ISO8601</span></div>
+                            <div><span class="json-key">GameVariant</span> <span class="json-type">"HOLDEM"</span></div>
+                            <div><span class="json-key">BetStructure</span> <span class="json-type">"NOLIMIT"</span></div>
+                            <div><span class="json-key">FlopDrawBlinds</span> <span class="json-type">object</span></div>
+                            <div class="json-nested">
+                                <div style="color: #f59e0b; font-weight: 600; margin: 8px 0;">Events[]</div>
+                                <div><span class="json-key">EventType</span> <span class="json-type">"FOLD"</span></div>
+                                <div><span class="json-key">PlayerNum</span> <span class="json-type">int</span></div>
+                                <div><span class="json-key">BetAmt</span> <span class="json-type">int</span></div>
+                                <div><span class="json-key">Pot</span> <span class="json-type">int</span></div>
+                                <div><span class="json-key">BoardCards</span> <span class="json-type">string</span></div>
+                            </div>
+                            <div class="json-nested">
+                                <div style="color: #f59e0b; font-weight: 600; margin: 8px 0;">Players[]</div>
+                                <div><span class="json-key">PlayerNum</span> <span class="json-type">1-10</span></div>
+                                <div><span class="json-key">Name</span> <span class="json-type">string</span></div>
+                                <div><span class="json-key">LongName</span> <span class="json-type">string</span></div>
+                                <div><span class="json-key">HoleCards</span> <span class="json-type">["10d 9d"]</span></div>
+                                <div><span class="json-key">StartStackAmt</span> <span class="json-type">int</span></div>
+                                <div><span class="json-key">EndStackAmt</span> <span class="json-type">int</span></div>
+                                <div><span class="json-key">VPIPPercent</span> <span class="json-type">float</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Middle Column: json Schema -->
+            <div class="mapping-area">
+                <div class="column-header json-schema">
+                    json Schema (원본 보존)
+                </div>
+
+                <!-- gfx_sessions -->
+                <div class="schema-table json-schema">
+                    <div class="table-header json-schema">
+                        <span>gfx_sessions</span>
+                        <span class="badge">6 tables</span>
+                    </div>
+                    <div class="table-fields">
+                        <div class="field-row">
+                            <span class="field-name"><span class="field-pk">PK</span> id</span>
+                            <span class="field-type">uuid</span>
+                            <span class="field-mapping">auto-generated</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name"><span class="field-uk">UK</span> session_id</span>
+                            <span class="field-type">BIGINT</span>
+                            <span class="field-mapping"><span class="arrow">←</span> ID (int64)</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name"><span class="field-uk">UK</span> file_hash</span>
+                            <span class="field-type">TEXT</span>
+                            <span class="field-mapping"><span class="arrow">←</span> SHA256(file)</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">table_type</span>
+                            <span class="field-type">ENUM</span>
+                            <span class="field-mapping"><span class="arrow">←</span> Type</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">event_title</span>
+                            <span class="field-type">TEXT</span>
+                            <span class="field-mapping"><span class="arrow">←</span> EventTitle</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">payouts</span>
+                            <span class="field-type">INT[]</span>
+                            <span class="field-mapping"><span class="arrow">←</span> Payouts[10]</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">raw_json</span>
+                            <span class="field-type">JSONB</span>
+                            <span class="field-mapping"><span class="arrow">←</span> 전체 JSON</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- gfx_hands -->
+                <div class="schema-table json-schema">
+                    <div class="table-header json-schema">
+                        <span>gfx_hands</span>
+                        <span class="badge">1:N</span>
+                    </div>
+                    <div class="table-fields">
+                        <div class="field-row">
+                            <span class="field-name"><span class="field-pk">PK</span> id</span>
+                            <span class="field-type">uuid</span>
+                            <span class="field-mapping">auto-generated</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name"><span class="field-fk">FK</span> session_id</span>
+                            <span class="field-type">BIGINT</span>
+                            <span class="field-mapping"><span class="arrow">←</span> parent.ID</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">hand_num</span>
+                            <span class="field-type">INT</span>
+                            <span class="field-mapping"><span class="arrow">←</span> HandNum</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">duration_seconds</span>
+                            <span class="field-type">INT</span>
+                            <span class="field-mapping"><span class="arrow">←</span> parse(Duration)</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">game_variant</span>
+                            <span class="field-type">ENUM</span>
+                            <span class="field-mapping"><span class="arrow">←</span> GameVariant</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">blinds</span>
+                            <span class="field-type">JSONB</span>
+                            <span class="field-mapping"><span class="arrow">←</span> FlopDrawBlinds</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">pot_size</span>
+                            <span class="field-type">BIGINT</span>
+                            <span class="field-mapping"><span class="arrow">←</span> Events[-1].Pot</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- gfx_events -->
+                <div class="schema-table json-schema">
+                    <div class="table-header json-schema">
+                        <span>gfx_events</span>
+                        <span class="badge">1:N</span>
+                    </div>
+                    <div class="table-fields">
+                        <div class="field-row">
+                            <span class="field-name"><span class="field-fk">FK</span> hand_id</span>
+                            <span class="field-type">uuid</span>
+                            <span class="field-mapping">참조</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">event_order</span>
+                            <span class="field-type">INT</span>
+                            <span class="field-mapping"><span class="arrow">←</span> 배열 인덱스</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">event_type</span>
+                            <span class="field-type">ENUM</span>
+                            <span class="field-mapping"><span class="arrow">←</span> EventType (변환)</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">bet_amt</span>
+                            <span class="field-type">BIGINT</span>
+                            <span class="field-mapping"><span class="arrow">←</span> BetAmt</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">board_cards</span>
+                            <span class="field-type">TEXT</span>
+                            <span class="field-mapping"><span class="arrow">←</span> BoardCards</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- gfx_hand_players -->
+                <div class="schema-table json-schema">
+                    <div class="table-header json-schema">
+                        <span>gfx_hand_players</span>
+                        <span class="badge">1:N</span>
+                    </div>
+                    <div class="table-fields">
+                        <div class="field-row">
+                            <span class="field-name"><span class="field-fk">FK</span> hand_id</span>
+                            <span class="field-type">uuid</span>
+                            <span class="field-mapping">참조</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">seat_num</span>
+                            <span class="field-type">INT</span>
+                            <span class="field-mapping"><span class="arrow">←</span> PlayerNum (1-10)</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">player_name</span>
+                            <span class="field-type">TEXT</span>
+                            <span class="field-mapping"><span class="arrow">←</span> Name</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">hole_cards</span>
+                            <span class="field-type">TEXT[]</span>
+                            <span class="field-mapping"><span class="arrow">←</span> split(HoleCards)</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">start_stack_amt</span>
+                            <span class="field-type">BIGINT</span>
+                            <span class="field-mapping"><span class="arrow">←</span> StartStackAmt</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">is_winner</span>
+                            <span class="field-type">BOOL</span>
+                            <span class="field-mapping"><span class="arrow">←</span> computed</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: public Schema -->
+            <div class="public-col">
+                <div class="column-header public-schema">
+                    public Schema (AEP 확장)
+                </div>
+
+                <!-- public tables -->
+                <div class="public-table">
+                    <div class="table-header">
+                        <span>gfx_sessions</span>
+                        <span class="badge">확장됨</span>
+                    </div>
+                    <div class="table-fields">
+                        <div class="field-row">
+                            <span class="field-name">+ nas_path</span>
+                            <span class="field-type">TEXT</span>
+                            <span class="field-mapping">NAS 원본 경로</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">+ sync_status</span>
+                            <span class="field-type">ENUM</span>
+                            <span class="field-mapping">동기화 상태</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">+ player_count</span>
+                            <span class="field-type">INT</span>
+                            <span class="field-mapping">집계 필드</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="public-table">
+                    <div class="table-header">
+                        <span>gfx_hands</span>
+                        <span class="badge">확장됨</span>
+                    </div>
+                    <div class="table-fields">
+                        <div class="field-row">
+                            <span class="field-name">+ grade</span>
+                            <span class="field-type">CHAR(1)</span>
+                            <span class="field-mapping">A/B/C/D/F</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">+ is_premium</span>
+                            <span class="field-type">BOOL</span>
+                            <span class="field-mapping">프리미엄 핸드</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">+ is_showdown</span>
+                            <span class="field-type">BOOL</span>
+                            <span class="field-mapping">쇼다운 여부</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="public-table">
+                    <div class="table-header">
+                        <span>hand_grades</span>
+                        <span class="badge">신규</span>
+                    </div>
+                    <div class="table-fields">
+                        <div class="field-row">
+                            <span class="field-name">grade</span>
+                            <span class="field-type">CHAR(1)</span>
+                            <span class="field-mapping">등급 (A/B/C)</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">broadcast_eligible</span>
+                            <span class="field-type">BOOL</span>
+                            <span class="field-mapping">방송 적격</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">conditions_met</span>
+                            <span class="field-type">INT</span>
+                            <span class="field-mapping">충족 조건 수</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="public-table">
+                    <div class="table-header">
+                        <span>gfx_hand_cards</span>
+                        <span class="badge">신규</span>
+                    </div>
+                    <div class="table-fields">
+                        <div class="field-row">
+                            <span class="field-name">card_rank</span>
+                            <span class="field-type">VARCHAR(2)</span>
+                            <span class="field-mapping">2-A</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">card_suit</span>
+                            <span class="field-type">CHAR(1)</span>
+                            <span class="field-mapping">s/h/d/c</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">card_type</span>
+                            <span class="field-type">VARCHAR</span>
+                            <span class="field-mapping">hole/flop/turn/river</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="public-table">
+                    <div class="table-header">
+                        <span>gfx_hand_results</span>
+                        <span class="badge">신규</span>
+                    </div>
+                    <div class="table-fields">
+                        <div class="field-row">
+                            <span class="field-name">is_winner</span>
+                            <span class="field-type">BOOL</span>
+                            <span class="field-mapping">승자 여부</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">won_amount</span>
+                            <span class="field-type">NUMERIC</span>
+                            <span class="field-mapping">획득 금액</span>
+                        </div>
+                        <div class="field-row">
+                            <span class="field-name">hand_rank</span>
+                            <span class="field-type">VARCHAR</span>
+                            <span class="field-mapping">족보 명칭</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Field Mapping Detail -->
+    <div class="mapping-section">
+        <h2>JSON → DB 필드 매핑 상세</h2>
+        <table class="mapping-table">
+            <thead>
+                <tr>
+                    <th>JSON 필드</th>
+                    <th>DB 컬럼</th>
+                    <th>타입 변환</th>
+                    <th>변환 방식</th>
+                    <th>주의사항</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="col-json">ID</td>
+                    <td class="col-db">session_id</td>
+                    <td class="col-transform">int64 → BIGINT</td>
+                    <td><span class="transform-badge direct">직접</span></td>
+                    <td>필드명 다름 주의!</td>
+                </tr>
+                <tr>
+                    <td class="col-json">Duration</td>
+                    <td class="col-db">duration_seconds</td>
+                    <td class="col-transform">ISO 8601 → INT</td>
+                    <td><span class="transform-badge parse">파싱</span></td>
+                    <td>PT35M37.2S → 2137</td>
+                </tr>
+                <tr>
+                    <td class="col-json">EventType</td>
+                    <td class="col-db">event_type</td>
+                    <td class="col-transform">string → ENUM</td>
+                    <td><span class="transform-badge map">매핑</span></td>
+                    <td>"BOARD CARD" → BOARD_CARD</td>
+                </tr>
+                <tr>
+                    <td class="col-json">HoleCards</td>
+                    <td class="col-db">hole_cards</td>
+                    <td class="col-transform">["10d 9d"] → TEXT[]</td>
+                    <td><span class="transform-badge parse">파싱</span></td>
+                    <td>공백 분리 필요</td>
+                </tr>
+                <tr>
+                    <td class="col-json">Name + LongName</td>
+                    <td class="col-db">player_hash</td>
+                    <td class="col-transform">string → MD5</td>
+                    <td><span class="transform-badge compute">계산</span></td>
+                    <td>MD5(name:long_name)</td>
+                </tr>
+                <tr>
+                    <td class="col-json">Events[-1].Pot</td>
+                    <td class="col-db">pot_size</td>
+                    <td class="col-transform">int → BIGINT</td>
+                    <td><span class="transform-badge compute">계산</span></td>
+                    <td>마지막 이벤트 Pot 값</td>
+                </tr>
+                <tr>
+                    <td class="col-json">EndStackAmt - StartStackAmt</td>
+                    <td class="col-db">is_winner</td>
+                    <td class="col-transform">int → BOOL</td>
+                    <td><span class="transform-badge compute">계산</span></td>
+                    <td>stack 증가 시 true</td>
+                </tr>
+                <tr>
+                    <td class="col-json">FlopDrawBlinds</td>
+                    <td class="col-db">blinds</td>
+                    <td class="col-transform">object → JSONB</td>
+                    <td><span class="transform-badge direct">직접</span></td>
+                    <td>전체 객체 저장</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Enum Types -->
+    <div class="enum-section">
+        <div class="mapping-section" style="margin-top: 0;">
+            <h2>ENUM 타입 정의</h2>
+            <div class="enum-grid">
+                <div class="enum-box">
+                    <h4>table_type</h4>
+                    <div class="enum-values">
+                        <span class="enum-value">FEATURE_TABLE</span>
+                        <span class="enum-value">MAIN_TABLE</span>
+                        <span class="enum-value">FINAL_TABLE</span>
+                        <span class="enum-value">SIDE_TABLE</span>
+                        <span class="enum-value">UNKNOWN</span>
+                    </div>
+                </div>
+                <div class="enum-box">
+                    <h4>game_variant</h4>
+                    <div class="enum-values">
+                        <span class="enum-value">HOLDEM</span>
+                        <span class="enum-value">OMAHA</span>
+                        <span class="enum-value">OMAHA_HILO</span>
+                        <span class="enum-value">STUD</span>
+                        <span class="enum-value">RAZZ</span>
+                        <span class="enum-value">DRAW</span>
+                    </div>
+                </div>
+                <div class="enum-box">
+                    <h4>bet_structure</h4>
+                    <div class="enum-values">
+                        <span class="enum-value">NOLIMIT</span>
+                        <span class="enum-value">POTLIMIT</span>
+                        <span class="enum-value">LIMIT</span>
+                        <span class="enum-value">SPREAD_LIMIT</span>
+                    </div>
+                </div>
+                <div class="enum-box">
+                    <h4>event_type</h4>
+                    <div class="enum-values">
+                        <span class="enum-value">FOLD</span>
+                        <span class="enum-value">CHECK</span>
+                        <span class="enum-value">CALL</span>
+                        <span class="enum-value">BET</span>
+                        <span class="enum-value">RAISE</span>
+                        <span class="enum-value">ALL_IN</span>
+                        <span class="enum-value">BOARD_CARD</span>
+                    </div>
+                </div>
+                <div class="enum-box">
+                    <h4>sync_status</h4>
+                    <div class="enum-values">
+                        <span class="enum-value">pending</span>
+                        <span class="enum-value">synced</span>
+                        <span class="enum-value">updated</span>
+                        <span class="enum-value">failed</span>
+                        <span class="enum-value">archived</span>
+                    </div>
+                </div>
+                <div class="enum-box">
+                    <h4>ante_type</h4>
+                    <div class="enum-values">
+                        <span class="enum-value">NO_ANTE</span>
+                        <span class="enum-value">BB_ANTE_BB1ST</span>
+                        <span class="enum-value">BB_ANTE_BTN1ST</span>
+                        <span class="enum-value">ALL_ANTE</span>
+                    </div>
+                </div>
+                <div class="enum-box">
+                    <h4>game_class</h4>
+                    <div class="enum-values">
+                        <span class="enum-value">FLOP</span>
+                        <span class="enum-value">STUD</span>
+                        <span class="enum-value">DRAW</span>
+                        <span class="enum-value">MIXED</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trigger Sync Flow -->
+    <div class="trigger-section">
+        <h2>동기화 트리거 흐름</h2>
+        <div class="trigger-flow">
+            <div class="trigger-box source">
+                <div class="icon">📥</div>
+                <div class="title">json.hands</div>
+                <div class="desc">INSERT / UPDATE</div>
+            </div>
+            <div class="trigger-arrow">→</div>
+            <div class="trigger-box trigger">
+                <div class="icon">⚡</div>
+                <div class="title">trg_sync_hands</div>
+                <div class="desc">AFTER TRIGGER</div>
+            </div>
+            <div class="trigger-arrow">→</div>
+            <div class="trigger-box target">
+                <div class="icon">📤</div>
+                <div class="title">public.gfx_hands</div>
+                <div class="desc">UPSERT (ON CONFLICT)</div>
+            </div>
+        </div>
+        <div style="margin-top: 16px; padding: 16px; background: #1a1a2e; border-radius: 8px; font-size: 11px; color: #94a3b8;">
+            <strong style="color: #8b5cf6;">동기화 정책:</strong>
+            json 스키마는 GFX 파일 원본 구조 보존 (SSOT) → 트리거로 public 스키마에 자동 동기화 → public 스키마에서 AEP 렌더링용 추가 필드 관리
+        </div>
+    </div>
+
+    <!-- ERD Overview -->
+    <div class="mapping-section" style="margin-top: 40px;">
+        <h2>테이블 관계 (ERD)</h2>
+        <div style="background: #1a1a2e; border-radius: 8px; padding: 24px; font-family: monospace; font-size: 12px; line-height: 2;">
+            <pre style="color: #e2e8f0;">
+┌──────────────────┐       ┌──────────────────┐
+│   gfx_players    │       │   gfx_sessions   │
+│  (플레이어 마스터) │       │   (세션 단위)     │
+├──────────────────┤       ├──────────────────┤
+│ <span style="color: #f59e0b;">PK</span> id           │       │ <span style="color: #f59e0b;">PK</span> id           │
+│ <span style="color: #ec4899;">UK</span> player_hash  │◄──┐   │ <span style="color: #ec4899;">UK</span> session_id   │───┐
+│    name          │   │   │ <span style="color: #ec4899;">UK</span> file_hash    │   │
+│    long_name     │   │   │    table_type    │   │
+└──────────────────┘   │   │    raw_json      │   │
+                       │   └──────────────────┘   │
+                       │            │             │
+                       │            │ 1:N         │
+                       │            ▼             │
+                       │   ┌──────────────────┐   │
+                       │   │    gfx_hands     │   │
+                       │   │   (핸드 단위)     │   │
+                       │   ├──────────────────┤   │
+                       │   │ <span style="color: #f59e0b;">PK</span> id           │   │
+                       │   │ <span style="color: #8b5cf6;">FK</span> session_id   │◄──┘
+                       │   │    hand_num      │
+                       │   │    pot_size      │
+                       │   │    board_cards   │
+                       │   └──────────────────┘
+                       │            │
+                       │            │ 1:N
+        ┌──────────────┴────────────┼────────────────┐
+        │                           │                │
+        ▼                           ▼                ▼
+┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+│ gfx_hand_players │  │    gfx_events    │  │   hand_grades    │
+│  (핸드별 플레이어) │  │   (액션/이벤트)   │  │   (핸드 등급)     │
+├──────────────────┤  ├──────────────────┤  ├──────────────────┤
+│ <span style="color: #8b5cf6;">FK</span> hand_id      │  │ <span style="color: #8b5cf6;">FK</span> hand_id      │  │ <span style="color: #8b5cf6;">FK</span> hand_id      │
+│ <span style="color: #8b5cf6;">FK</span> player_id    │  │    event_order   │  │    grade (A/B/C) │
+│    seat_num      │  │    event_type    │  │    broadcast_    │
+│    hole_cards    │  │    bet_amt       │  │      eligible    │
+│    start_stack   │  │    pot           │  │    conditions_   │
+│    end_stack     │  │    board_cards   │  │      met         │
+└──────────────────┘  └──────────────────┘  └──────────────────┘
+            </pre>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer style="margin-top: 60px; padding-top: 24px; border-top: 1px solid #2d3748; text-align: center; color: #64748b; font-size: 11px;">
+        <p>GFX JSON → Supabase Mapping Diagram | Based on 02-GFX-JSON-DB.md</p>
+        <p style="margin-top: 8px;">Version 1.1.0 | 2026-01-19</p>
+    </footer>
+</body>
+</html>

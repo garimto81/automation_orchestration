@@ -5,14 +5,20 @@ WSOP 포커 방송 자동화 시스템의 전체 데이터 파이프라인 아�
 > **관련 문서**
 > - [DB 스키마 상세 설계](architecture.md) - DDL, ERD, Enum 타입 정의
 > - [아키텍처 요약](ARCHITECTURE_ANALYSIS.md) - Executive Summary
-> - [프로젝트 현황](AUTOMATION_PROJECTS_REPORT.md) - 7개 프로젝트 현황
+> - [프로젝트 현황](AUTOMATION_PROJECTS_REPORT.md) - 10개 프로젝트 현황
 > - [AEP 필드 매핑](GFX_AEP_FIELD_MAPPING.md) - 26개 컴포지션 84개 필드 매핑
+> - [프로젝트 관계도](PROJECT_RELATIONSHIPS.md) - 프로젝트 간 의존성
 >
 > **모듈별 세부 설계**
 > - [Module 1-2 설계](MODULE_1_2_DESIGN.md) - GFX 시뮬레이터 + NAS-Supabase Sync
 > - [Module 3-5 설계](MODULE_3_5_DESIGN.md) - Supabase Schema + Main/Sub Dashboard
 > - [Module 6 설계](MODULE_6_DATAFLOW_DESIGN.md) - AE-Nexrender + 통합 데이터 흐름
 > - [병렬 개발 계획](PARALLEL_DEVELOPMENT_PLAN.md) - 3-Phase 병렬 에이전트 오케스트레이션
+>
+> **운영 가이드 & PRD**
+> - [마이그레이션 가이드](MIGRATION_GUIDE.md) - 데이터 마이그레이션 절차
+> - [Dashboard 재설계](PHASE2_DASHBOARD_DESIGN.md) - Phase 2 Dashboard 명세
+> - [Overview Dashboard PRD](PRD-0010-overview-dashboard.md) - PRD-0010
 
 ---
 
@@ -42,9 +48,9 @@ PokerGFX 데이터를 수집하여 After Effects 자막으로 자동 변환하�
 | 1 | **GFX 시뮬레이터** | GFX 테스트용 시뮬레이터 앱 | Python, Streamlit | ✅ 완료 |
 | 2 | **GFX-NAS-Supabase Sync** | NAS의 GFX 데이터 → Supabase 전송 | Python, Watchdog, asyncio | 🔄 개발중 |
 | 3 | **Supabase DB Schema** | 전체 DB 설계 (4개 스키마) | PostgreSQL 15, Supabase | 🔄 개발중 |
-| 4 | **Main Dashboard** | 핸드 수집, 배치, 연출 결정 | React, Next.js, TypeScript | 🔄 개발중 |
-| 5 | **Sub Dashboard** | 자막 출력 결정, 시계열 관리, 렌더링 지시 | React, Next.js, TypeScript | 🔄 개발중 |
-| 6 | **AE-Nexrender 모듈** | AEP 렌더링 → 출력물 저장 | Node.js, Nexrender | 🔄 개발중 |
+| 4 | **Main Dashboard** | 핸드 수집, 배치, 연출 결정 | React, Next.js, TypeScript | 🔄 70% |
+| 5 | **Sub Dashboard** | 자막 출력 결정, 시계열 관리, 렌더링 지시 | React, Next.js, TypeScript | 🔄 70% |
+| 6 | **AE-Nexrender 모듈** | AEP 렌더링 → 출력물 저장 | Node.js, Nexrender | 🔄 85% |
 
 ---
 
@@ -280,12 +286,11 @@ PokerGFX 데이터를 수집하여 After Effects 자막으로 자동 변환하�
 | automation_feature_table | Module 1 | GFX 시뮬레이터 | ✅ 완료 |
 | automation_hub + gfx_json | Module 2 | GFX-NAS-Supabase Sync | 🔄 개발중 |
 | automation_schema | Module 3 | Supabase DB Schema | 🔄 개발중 |
-| automation_dashboard (Main) | Module 4 | Main Dashboard | 🔄 개발중 |
-| automation_dashboard (Sub) | Module 5 | Sub Dashboard | 🔄 개발중 |
-| automation_ae + ae_nexrender_module | Module 6 | AE-Nexrender | 🔄 개발중 |
+| automation_dashboard (Main) | Module 4 | Main Dashboard | 🔄 70% |
+| automation_dashboard (Sub) | Module 5 | Sub Dashboard | 🔄 70% |
+| automation_ae + ae_nexrender_module | Module 6 | AE-Nexrender | 🔄 85% |
 | automation_orchestration | - | 전체 문서/모니터링 | 📄 문서화 |
 | automation_sub | - | PRD 관리 | ✅ 활성 |
-| automation_ae_switcher | - | AE 모드 전환 (PRD) | 📋 PRD만 |
 
 ### 연관 프로젝트
 
@@ -330,4 +335,4 @@ PokerGFX 데이터를 수집하여 After Effects 자막으로 자동 변환하�
 
 ---
 
-*최종 수정: 2026-01-15*
+*최종 수정: 2026-01-28*
