@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>parse_duration Code Block</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: transparent;
+            font-family: 'Fira Code', monospace;
+            padding: 0;
+        }
+        #capture-area {
+            width: 600px;
+            background: linear-gradient(135deg, #1a1e26 0%, #14171d 100%);
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+        }
+        .window-header {
+            background: #0d1117;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .dots { display: flex; gap: 8px; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; opacity: 0.5; }
+        .dot:nth-child(1) { background: #ff5f57; }
+        .dot:nth-child(2) { background: #febc2e; }
+        .dot:nth-child(3) { background: #28c840; }
+        .lang-tag {
+            font-size: 11px;
+            color: #8b949e;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .code-container {
+            padding: 20px 24px;
+            font-size: 13px;
+            line-height: 1.8;
+            color: #c9d1d9;
+        }
+        .code-line { display: block; white-space: pre; }
+        .comment { color: #6e7681; font-style: italic; }
+        .keyword { color: #c792ea; font-weight: 500; }
+        .function { color: #ffc66d; font-weight: 500; }
+        .string { color: #89ca78; }
+        .param { color: #e06c75; }
+        .type { color: #56b6c2; }
+        .number { color: #d19a66; }
+        .docstring { color: #7f848e; font-style: italic; }
+        .module { color: #82aaff; }
+        .builtin { color: #61afef; }
+        .operator { color: #89ddff; }
+    </style>
+</head>
+<body>
+    <div id="capture-area">
+        <div class="window-header">
+            <div class="dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+            <div class="lang-tag">Python</div>
+        </div>
+        <div class="code-container">
+<span class="code-line"><span class="keyword">import</span> <span class="module">re</span></span>
+<span class="code-line"></span>
+<span class="code-line"><span class="keyword">def</span> <span class="function">parse_duration</span>(<span class="param">duration_str</span>: <span class="type">str</span>) <span class="operator">-></span> <span class="type">float</span>:</span>
+<span class="code-line">    <span class="docstring">"""ISO 8601 Duration → 초 단위"""</span></span>
+<span class="code-line">    <span class="param">pattern</span> <span class="operator">=</span> <span class="string">r"PT(?:(\d+)H)?(?:(\d+)M)?(?:([\d.]+)S)?"</span></span>
+<span class="code-line">    <span class="param">match</span> <span class="operator">=</span> re.<span class="function">match</span>(<span class="param">pattern</span>, <span class="param">duration_str</span>)</span>
+<span class="code-line">    <span class="keyword">if</span> <span class="operator">not</span> <span class="param">match</span>:</span>
+<span class="code-line">        <span class="keyword">return</span> <span class="number">0.0</span></span>
+<span class="code-line">    <span class="param">hours</span> <span class="operator">=</span> <span class="builtin">int</span>(<span class="param">match</span>.<span class="function">group</span>(<span class="number">1</span>) <span class="operator">or</span> <span class="number">0</span>)</span>
+<span class="code-line">    <span class="param">minutes</span> <span class="operator">=</span> <span class="builtin">int</span>(<span class="param">match</span>.<span class="function">group</span>(<span class="number">2</span>) <span class="operator">or</span> <span class="number">0</span>)</span>
+<span class="code-line">    <span class="param">seconds</span> <span class="operator">=</span> <span class="builtin">float</span>(<span class="param">match</span>.<span class="function">group</span>(<span class="number">3</span>) <span class="operator">or</span> <span class="number">0</span>)</span>
+<span class="code-line">    <span class="keyword">return</span> <span class="param">hours</span> <span class="operator">*</span> <span class="number">3600</span> <span class="operator">+</span> <span class="param">minutes</span> <span class="operator">*</span> <span class="number">60</span> <span class="operator">+</span> <span class="param">seconds</span></span>
+        </div>
+    </div>
+</body>
+</html>

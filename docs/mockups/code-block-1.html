@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ticks_to_datetime Code Block</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: transparent;
+            font-family: 'Fira Code', monospace;
+            padding: 0;
+        }
+        #capture-area {
+            width: 600px;
+            background: linear-gradient(135deg, #1a1e26 0%, #14171d 100%);
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+        }
+        .window-header {
+            background: #0d1117;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .dots { display: flex; gap: 8px; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; opacity: 0.5; }
+        .dot:nth-child(1) { background: #ff5f57; }
+        .dot:nth-child(2) { background: #febc2e; }
+        .dot:nth-child(3) { background: #28c840; }
+        .lang-tag {
+            font-size: 11px;
+            color: #8b949e;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .code-container {
+            padding: 20px 24px;
+            font-size: 13px;
+            line-height: 1.8;
+            color: #c9d1d9;
+        }
+        .code-line { display: block; white-space: pre; }
+        .comment { color: #6e7681; font-style: italic; }
+        .keyword { color: #c792ea; font-weight: 500; }
+        .function { color: #ffc66d; font-weight: 500; }
+        .string { color: #89ca78; }
+        .param { color: #e06c75; }
+        .type { color: #56b6c2; }
+        .number { color: #d19a66; }
+        .docstring { color: #7f848e; font-style: italic; }
+        .module { color: #82aaff; }
+        .builtin { color: #61afef; }
+        .operator { color: #89ddff; }
+    </style>
+</head>
+<body>
+    <div id="capture-area">
+        <div class="window-header">
+            <div class="dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+            <div class="lang-tag">Python</div>
+        </div>
+        <div class="code-container">
+<span class="code-line"><span class="comment"># .NET Ticks → Python datetime 변환</span></span>
+<span class="code-line"><span class="keyword">from</span> <span class="module">datetime</span> <span class="keyword">import</span> datetime, timezone, timedelta</span>
+<span class="code-line"></span>
+<span class="code-line"><span class="keyword">def</span> <span class="function">ticks_to_datetime</span>(<span class="param">ticks</span>: <span class="type">int</span>) <span class="operator">-></span> <span class="type">datetime</span>:</span>
+<span class="code-line">    <span class="docstring">"""Convert .NET ticks to Python datetime"""</span></span>
+<span class="code-line">    <span class="param">epoch</span> <span class="operator">=</span> <span class="builtin">datetime</span>(<span class="number">1</span>, <span class="number">1</span>, <span class="number">1</span>, tzinfo<span class="operator">=</span>timezone.utc)</span>
+<span class="code-line">    <span class="keyword">return</span> <span class="param">epoch</span> <span class="operator">+</span> <span class="builtin">timedelta</span>(microseconds<span class="operator">=</span><span class="param">ticks</span> <span class="operator">//</span> <span class="number">10</span>)</span>
+        </div>
+    </div>
+</body>
+</html>

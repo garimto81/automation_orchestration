@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GFX JSON Structure - Wireframe</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f5f5f5;
+            padding: 40px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #1a1a1a;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 32px;
+        }
+
+        .section {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #333;
+        }
+
+        /* Hierarchy Diagram */
+        .hierarchy {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+        }
+
+        .level {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 24px;
+            position: relative;
+        }
+
+        .node {
+            background: white;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 16px 24px;
+            min-width: 200px;
+            text-align: center;
+            position: relative;
+        }
+
+        .node.root {
+            background: #1a1a1a;
+            color: white;
+            min-width: 400px;
+        }
+
+        .node.root .node-title {
+            color: white;
+        }
+
+        .node-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #1a1a1a;
+        }
+
+        .node-subtitle {
+            font-size: 11px;
+            color: #666;
+        }
+
+        .node.root .node-subtitle {
+            color: #aaa;
+        }
+
+        .connector {
+            width: 2px;
+            height: 32px;
+            background: #333;
+            margin: 0 auto;
+        }
+
+        .connector-horizontal {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .connector-horizontal::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 25%;
+            right: 25%;
+            height: 2px;
+            background: #333;
+        }
+
+        .connector-down {
+            display: flex;
+            justify-content: space-around;
+            width: 50%;
+            margin: 0 auto;
+        }
+
+        .connector-down::before,
+        .connector-down::after {
+            content: '';
+            width: 2px;
+            height: 32px;
+            background: #333;
+        }
+
+        .relation-label {
+            font-size: 11px;
+            color: #666;
+            background: #f5f5f5;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin: 8px 0;
+        }
+
+        /* ERD Style */
+        .erd-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+
+        .erd-table {
+            border: 2px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+            min-width: 280px;
+            flex: 1;
+        }
+
+        .erd-header {
+            background: #1a1a1a;
+            color: white;
+            padding: 12px 16px;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .erd-body {
+            padding: 0;
+        }
+
+        .erd-field {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 16px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 12px;
+        }
+
+        .erd-field:last-child {
+            border-bottom: none;
+        }
+
+        .field-name {
+            font-weight: 500;
+            color: #1a1a1a;
+        }
+
+        .field-type {
+            color: #666;
+            font-family: 'Consolas', monospace;
+            font-size: 11px;
+        }
+
+        .field-pk {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .field-pk::before {
+            content: '🔑 ';
+        }
+
+        /* Data Flow */
+        .flow-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .flow-box {
+            background: white;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 16px 24px;
+            text-align: center;
+            min-width: 160px;
+        }
+
+        .flow-box.highlight {
+            background: #1a1a1a;
+            color: white;
+        }
+
+        .flow-box-title {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .flow-box-subtitle {
+            font-size: 10px;
+            color: #666;
+        }
+
+        .flow-box.highlight .flow-box-subtitle {
+            color: #aaa;
+        }
+
+        .flow-arrow {
+            font-size: 24px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .stat-card {
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        /* Field Classification */
+        .classification-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .class-card {
+            border: 2px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .class-header {
+            padding: 12px 16px;
+            font-weight: 600;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .class-header.active {
+            background: #1a1a1a;
+            color: white;
+        }
+
+        .class-header.reserved {
+            background: #666;
+            color: white;
+        }
+
+        .class-header.archived {
+            background: #e0e0e0;
+            color: #666;
+        }
+
+        .class-count {
+            background: white;
+            color: #333;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+        }
+
+        .class-body {
+            padding: 12px 16px;
+            font-size: 11px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        /* Card Notation */
+        .cards-container {
+            display: flex;
+            gap: 32px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .card-group {
+            text-align: center;
+        }
+
+        .card-group-title {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #1a1a1a;
+        }
+
+        .playing-cards {
+            display: flex;
+            gap: 8px;
+        }
+
+        .playing-card {
+            width: 48px;
+            height: 68px;
+            background: white;
+            border: 2px solid #333;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .playing-card .rank {
+            font-size: 16px;
+        }
+
+        .playing-card .suit {
+            font-size: 20px;
+        }
+
+        .card-notation {
+            font-family: 'Consolas', monospace;
+            font-size: 11px;
+            margin-top: 8px;
+            color: #666;
+        }
+
+        /* Event Types */
+        .event-types {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .event-badge {
+            padding: 8px 16px;
+            border: 2px solid #333;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .event-badge.action {
+            background: white;
+        }
+
+        .event-badge.board {
+            background: #1a1a1a;
+            color: white;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            font-size: 11px;
+            color: #999;
+            margin-top: 32px;
+            padding-top: 16px;
+            border-top: 1px solid #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GFX JSON Structure</h1>
+        <p class="subtitle">PokerGFX 3.2 Export JSON - 4-Level Hierarchy Analysis</p>
+
+        <!-- Stats Overview -->
+        <div class="section">
+            <div class="section-title">Analysis Summary</div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">28</div>
+                    <div class="stat-label">JSON Files</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">939</div>
+                    <div class="stat-label">Total Hands</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">7,207</div>
+                    <div class="stat-label">Player Records</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">60</div>
+                    <div class="stat-label">Fields Analyzed</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hierarchy Diagram -->
+        <div class="section">
+            <div class="section-title">JSON Hierarchy</div>
+            <div class="hierarchy">
+                <div class="level">
+                    <div class="node root">
+                        <div class="node-title">Root (Session)</div>
+                        <div class="node-subtitle">ID, Type, CreatedDateTimeUTC, Payouts[]</div>
+                    </div>
+                </div>
+
+                <div class="connector"></div>
+                <div class="relation-label">1 : N</div>
+                <div class="connector"></div>
+
+                <div class="level">
+                    <div class="node">
+                        <div class="node-title">Hands[]</div>
+                        <div class="node-subtitle">HandNum, Duration, FlopDrawBlinds{}</div>
+                    </div>
+                </div>
+
+                <div class="connector-down"></div>
+                <div style="display: flex; justify-content: space-around; width: 60%; margin: 0 auto;">
+                    <div class="relation-label">1 : N</div>
+                    <div class="relation-label">1 : N</div>
+                </div>
+                <div class="connector-down"></div>
+
+                <div class="level">
+                    <div class="node">
+                        <div class="node-title">Players[]</div>
+                        <div class="node-subtitle">PlayerNum, Name, Stack, HoleCards</div>
+                    </div>
+                    <div class="node">
+                        <div class="node-title">Events[]</div>
+                        <div class="node-subtitle">EventType, BetAmt, Pot, BoardCards</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Field Classification -->
+        <div class="section">
+            <div class="section-title">Field Classification</div>
+            <div class="classification-grid">
+                <div class="class-card">
+                    <div class="class-header active">
+                        ACTIVE
+                        <span class="class-count">32</span>
+                    </div>
+                    <div class="class-body">
+                        Currently used fields mapped to AEP compositions.
+                        Stored in normalized DB tables.
+                    </div>
+                </div>
+                <div class="class-card">
+                    <div class="class-header reserved">
+                        RESERVED
+                        <span class="class-count">6</span>
+                    </div>
+                    <div class="class-body">
+                        Fixed values now, but may change.
+                        BetStructure, GameClass, GameVariant, AnteType...
+                    </div>
+                </div>
+                <div class="class-card">
+                    <div class="class-header archived">
+                        ARCHIVED
+                        <span class="class-count">22</span>
+                    </div>
+                    <div class="class-body">
+                        100% null or fixed values.
+                        EventTitle, Description, StudLimits.*...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Flow -->
+        <div class="section">
+            <div class="section-title">Data Flow Pipeline</div>
+            <div class="flow-container">
+                <div class="flow-box">
+                    <div class="flow-box-title">GFX JSON</div>
+                    <div class="flow-box-subtitle">PGFX_*.json</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-box highlight">
+                    <div class="flow-box-title">Parser</div>
+                    <div class="flow-box-subtitle">gfx_normalizer.py</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-box">
+                    <div class="flow-box-title">json Schema</div>
+                    <div class="flow-box-subtitle">5 Tables</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-box">
+                    <div class="flow-box-title">public Schema</div>
+                    <div class="flow-box-subtitle">AEP Views</div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-box highlight">
+                    <div class="flow-box-title">After Effects</div>
+                    <div class="flow-box-subtitle">26 Compositions</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ERD -->
+        <div class="section">
+            <div class="section-title">Database Schema (ERD)</div>
+            <div class="erd-container">
+                <div class="erd-table">
+                    <div class="erd-header">gfx_sessions</div>
+                    <div class="erd-body">
+                        <div class="erd-field">
+                            <span class="field-name field-pk">session_id</span>
+                            <span class="field-type">BIGINT</span>
+                        </div>
+                        <div class="erd-field">
+                            <span class="field-name">created_at</span>
+                            <span class="field-type">TIMESTAMPTZ</span>
+                        </div>
+                        <div class="erd-field">
+                            <span class="field-name">table_type</span>
+                            <span class="field-type">ENUM</span>
+                        </div>
+                        <div class="erd-field">
+                            <span class="field-name">raw_json</span>
+                            <span class="field-type">JSONB</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="erd-table">
+                    <div class="erd-header">gfx_hands</div>
+                    <div class="erd-body">
+                        <div class="erd-field">
+                            <span class="field-name field-pk">id</span>
+                            <span class="field-type">UUID</span>
+                        </div>
+                        <div class="erd-field">
+                            <span class="field-name">session_id</span>
+                            <span class="field-type">BIGINT FK</span>
+                        </div>
+                        <div class="erd-field">
+                            <span class="field-name">hand_number</span>
+                            <span class="field-type">INTEGER</span>
+                        </div>
+                        <div class="erd-field">
+                            <span class="field-name">big_blind</span>
+                            <span class="field-type">BIGINT</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="erd-table">
+                    <div class="erd-header">gfx_hand_players</div>
+                    <div class="erd-body">
+                        <div class="erd-field">
+                            <span class="field-name field-pk">id</span>
+                            <span class="field-type">UUID</span>
+                        </div>
+                        <div class="erd-field">
+                            <span class="field-name">hand_id</span>
+                            <span class="field-type">UUID FK</span>
+                        </div>
+                        <div class="erd-field">
+                            <span class="field-name">seat_number</span>
+                            <span class="field-type">INTEGER</span>
+                        </div>
+                        <div class="erd-field">
+                            <span class="field-name">end_stack</span>
+                            <span class="field-type">BIGINT</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="erd-table">
+                    <div class="erd-header">gfx_events</div>
+                    <div class="erd-body">
+                        <div class="erd-field">
+                            <span class="field-name field-pk">id</span>
+                            <span class="field-type">UUID</span>
+                        </div>
+                        <div class="erd-field">
+                            <span class="field-name">hand_id</span>
+                            <span class="field-type">UUID FK</span>
+                        </div>
+                        <div class="erd-field">
+                            <span class="field-name">event_type</span>
+                            <span class="field-type">ENUM</span>
+                        </div>
+                        <div class="erd-field">
+                            <span class="field-name">pot_size</span>
+                            <span class="field-type">BIGINT</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Event Types -->
+        <div class="section">
+            <div class="section-title">Event Types</div>
+            <div class="event-types">
+                <div class="event-badge action">FOLD</div>
+                <div class="event-badge action">BET</div>
+                <div class="event-badge action">CALL</div>
+                <div class="event-badge action">CHECK</div>
+                <div class="event-badge action">ALL IN</div>
+                <div class="event-badge board">BOARD CARD</div>
+            </div>
+        </div>
+
+        <!-- Card Notation -->
+        <div class="section">
+            <div class="section-title">Card Notation</div>
+            <div class="cards-container">
+                <div class="card-group">
+                    <div class="card-group-title">HoleCards Example</div>
+                    <div class="playing-cards">
+                        <div class="playing-card">
+                            <span class="rank">A</span>
+                            <span class="suit">♥</span>
+                        </div>
+                        <div class="playing-card">
+                            <span class="rank">K</span>
+                            <span class="suit">♦</span>
+                        </div>
+                    </div>
+                    <div class="card-notation">"ah kd"</div>
+                </div>
+                <div class="card-group">
+                    <div class="card-group-title">BoardCards Example</div>
+                    <div class="playing-cards">
+                        <div class="playing-card">
+                            <span class="rank">10</span>
+                            <span class="suit">♣</span>
+                        </div>
+                        <div class="playing-card">
+                            <span class="rank">7</span>
+                            <span class="suit">♠</span>
+                        </div>
+                        <div class="playing-card">
+                            <span class="rank">2</span>
+                            <span class="suit">♦</span>
+                        </div>
+                    </div>
+                    <div class="card-notation">"10c", "7s", "2d"</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            GFX JSON Structure Wireframe | B&W Style | automation_orchestration
+        </div>
+    </div>
+</body>
+</html>
